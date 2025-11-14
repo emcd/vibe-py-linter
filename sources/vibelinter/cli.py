@@ -20,13 +20,17 @@
 
 ''' Command-line interface. '''
 
+# ruff: noqa: F821
+
 
 from . import __
 
 
 # Type aliases for CLI parameters
-OutputFormat: __.typx.TypeAlias = __.typx.Literal[ 'text', 'json', 'structured' ]
-DiffFormat: __.typx.TypeAlias = __.typx.Literal[ 'unified', 'context' ]
+OutputFormat: __.typx.TypeAlias = (
+    __.typx.Literal[ 'text', 'json', 'structured' ] )
+DiffFormat: __.typx.TypeAlias = (
+    __.typx.Literal[ 'unified', 'context' ] )
 RuleSelectorArgument: __.typx.TypeAlias = __.typx.Annotated[
     str,
     __.ddoc.Doc( "Comma-separated VBL rule codes (e.g. VBL101,VBL201)." )
@@ -125,7 +129,9 @@ class DescribeRulesCommand( __.immut.DataclassObject ):
 
     details: __.typx.Annotated[
         bool,
-        __.ddoc.Doc( "Display detailed rule information including configuration status." )
+        __.ddoc.Doc(
+            "Display detailed rule information including "
+            "configuration status." )
     ] = False
 
     async def __call__( self ) -> int:
@@ -141,7 +147,9 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
     rule_id: __.tyro.conf.Positional[ str ]
     details: __.typx.Annotated[
         bool,
-        __.ddoc.Doc( "Display detailed rule information including configuration status." )
+        __.ddoc.Doc(
+            "Display detailed rule information including "
+            "configuration status." )
     ] = False
 
     async def __call__( self ) -> int:
@@ -191,7 +199,8 @@ class Cli( __.immut.DataclassObject ):
     command: __.typx.Union[
         __.typx.Annotated[
             CheckCommand,
-            __.tyro.conf.subcommand( 'check', prefix_name = False, default = True ),
+            __.tyro.conf.subcommand(
+                'check', prefix_name = False, default = True ),
         ],
         __.typx.Annotated[
             FixCommand,
