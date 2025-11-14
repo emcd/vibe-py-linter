@@ -24,8 +24,25 @@ Architectural Decision Records
 .. toctree::
    :maxdepth: 2
 
+   001-core-engine-and-rule-framework
+   002-syntax-tree-analysis-technology  
+   003-configuration-management
+   004-subcommand-architecture
 
-.. todo:: Add architectural decision records to toctree.
+Current Decisions
+===============================================================================
+
+**001. Core Engine and Rule Framework Architecture**
+  Hybrid modular architecture combining rapid prototyping with extensible plugin system for rule implementation.
+
+**002. Syntax Tree Analysis Technology Selection**  
+  LibCST adoption for concrete syntax tree analysis with rich metadata support enabling precise error reporting and future auto-fix capabilities.
+
+**003. Configuration Management System**
+  TOML-based configuration with ``pyproject.toml`` integration, supporting rule parameterization, command-line overrides, and non-destructive user interaction via snippet generation.
+
+**004. Subcommand-Based CLI Architecture**
+  Verb-based subcommand structure (check, fix, configure, describe, serve) with isolated option namespaces for different operational modes.
 
 For ADR format and guidance, see the `architecture documentation guide
 <https://emcd.github.io/python-project-common/stable/sphinx-html/common/architecture.html>`_.

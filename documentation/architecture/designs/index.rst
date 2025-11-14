@@ -24,5 +24,27 @@ Designs
 .. toctree::
    :maxdepth: 2
 
+   linter-core
+   cli
+   configuration-integration
+   diagnostic-reporting
+   file-discovery
 
-.. todo:: Add design documents to toctree.
+
+Current Designs
+===============================================================================
+
+**Linter Core Framework Design**
+  Hybrid modular architecture implementing validated LibCST patterns with BaseRule framework, single-pass CST analysis orchestration, rule registry system, and context extraction for enhanced error reporting.
+
+**CLI System Design**
+  Tyro-based subcommand architecture with protocol-driven command interfaces, comprehensive type safety, and integration with established configuration and engine systems.
+
+**Configuration Integration Design**
+  Integration between python-linter's TOML-based configuration system and emcd-appcore's standardized configuration infrastructure, providing layered precedence with pyproject.toml support and CLI overrides.
+
+**Diagnostic and Report Formatting Design**
+  Multi-format diagnostic reporting system with enhanced context display, deterministic sorting, and pluggable renderers implementing REQ-007 requirements for sophisticated error presentation.
+
+**File Discovery and Processing Pipeline Design**
+  Python file discovery system with .gitignore integration, configurable filtering, and processing pipeline coordination providing seamless integration with the linter core framework.
