@@ -40,7 +40,6 @@ class OutputFormats( __.enum.Enum ):
 
     Text = 'text'
     Json = 'json'
-    Structured = 'structured'
 
 
 class DisplayOptions( _appcore_cli.DisplayOptions ):
@@ -227,7 +226,7 @@ async def _render_and_print_result(
         DescribeRulesResult, DescribeRuleResult, ServeResult
     ],
     display: DisplayOptions,
-    exits: __.contextlib.AsyncExitStack,
+    exits: __.ctxl.AsyncExitStack,
 ) -> None:
     ''' Renders and prints a result object based on display options.
 
@@ -239,7 +238,7 @@ async def _render_and_print_result(
             import json
             stream.write( json.dumps( result.render_as_json( ) ) )
             stream.write( '\n' )
-        case OutputFormats.Structured | OutputFormats.Text:
+        case OutputFormats.Text:
             for line in result.render_as_text( ):
                 stream.write( line )
                 stream.write( '\n' )
@@ -268,7 +267,7 @@ class CheckCommand( __.immut.DataclassObject ):
             jobs = self.jobs,
             rule_selection = self.select,
         )
-        async with __.contextlib.AsyncExitStack( ) as exits:
+        async with __.ctxl.AsyncExitStack( ) as exits:
             await _render_and_print_result( result, self.display, exits )
         return 0
 
@@ -307,7 +306,7 @@ class FixCommand( __.immut.DataclassObject ):
             apply_dangerous = self.apply_dangerous,
             rule_selection = self.select,
         )
-        async with __.contextlib.AsyncExitStack( ) as exits:
+        async with __.ctxl.AsyncExitStack( ) as exits:
             await _render_and_print_result( result, self.display, exits )
         return 0
 
@@ -343,7 +342,7 @@ class ConfigureCommand( __.immut.DataclassObject ):
             interactive = self.interactive,
             display_effective = self.display_effective,
         )
-        async with __.contextlib.AsyncExitStack( ) as exits:
+        async with __.ctxl.AsyncExitStack( ) as exits:
             await _render_and_print_result( result, self.display, exits )
         return 0
 
@@ -366,7 +365,7 @@ class DescribeRulesCommand( __.immut.DataclassObject ):
     async def __call__( self ) -> int:
         ''' Executes the describe rules command. '''
         result = DescribeRulesResult( details = self.details )
-        async with __.contextlib.AsyncExitStack( ) as exits:
+        async with __.ctxl.AsyncExitStack( ) as exits:
             await _render_and_print_result( result, self.display, exits )
         return 0
 
@@ -393,7 +392,7 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
             rule_id = self.rule_id,
             details = self.details,
         )
-        async with __.contextlib.AsyncExitStack( ) as exits:
+        async with __.ctxl.AsyncExitStack( ) as exits:
             await _render_and_print_result( result, self.display, exits )
         return 0
 
@@ -433,7 +432,7 @@ class ServeCommand( __.immut.DataclassObject ):
     async def __call__( self ) -> int:
         ''' Executes the serve command. '''
         result = ServeResult( protocol = self.protocol )
-        async with __.contextlib.AsyncExitStack( ) as exits:
+        async with __.ctxl.AsyncExitStack( ) as exits:
             await _render_and_print_result( result, self.display, exits )
         return 0
 
