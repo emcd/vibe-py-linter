@@ -110,7 +110,6 @@ dependencies = [
   'coverage[toml]',
   'furo',
   'isort',
-  'line-profiler',
   'packaging',
   'pre-commit',
   'psutil',
