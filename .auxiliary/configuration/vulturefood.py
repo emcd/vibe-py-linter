@@ -32,3 +32,7 @@ package_name  # nomina.py
 
 # Exception base classes
 Omnierror  # exceptions.py
+
+# CLI methods and attributes for future use
+determine_colorization  # DisplayOptions.determine_colorization
+verbose  # Cli.verbose

@@ -23,6 +23,13 @@
 # ruff: noqa: F821
 
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager as async_context_manager
+from os import environ as os_environment
+from sys import stderr as standard_error
+from sys import stdout as standard_output
+from typing import Any, TextIO
+
 from . import __
 
 
@@ -33,19 +40,74 @@ class DiffFormats( __.enum.Enum ):
     Context = 'context'
 
 
+class OutputFormats( __.enum.Enum ):
+    ''' Output formats for reporting. '''
+
+    Text = 'text'
+    Json = 'json'
+    Structured = 'structured'
+
+
+class TargetStreams( __.enum.Enum ):
+    ''' Standard output streams. '''
+
+    Stdout = 'stdout'
+    Stderr = 'stderr'
+
+
 class DisplayOptions( __.immut.DataclassObject ):
-    ''' Display and output options. '''
+    ''' Display and output options for CLI commands.
+
+        Provides standardized handling of output streams, formats,
+        and terminal capabilities following appcore.cli patterns.
+    '''
 
     format: __.typx.Annotated[
-        __.typx.Literal[ 'text', 'json', 'structured' ],
+        OutputFormats,
         __.tyro.conf.arg( prefix_name = False ),
         __.ddoc.Doc( ''' Output format for reporting. ''' )
-    ] = 'text'
+    ] = OutputFormats.Text
     context: __.typx.Annotated[
         int,
         __.tyro.conf.arg( prefix_name = False ),
         __.ddoc.Doc( ''' Show context lines around violations. ''' )
     ] = 0
+    colorize: __.typx.Annotated[
+        bool,
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc( ''' Enable colored output and terminal formatting. ''' )
+    ] = True
+    target_stream: __.typx.Annotated[
+        TargetStreams,
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc( ''' Render output on stdout or stderr. ''' )
+    ] = TargetStreams.Stdout
+
+    def determine_colorization( self, stream: TextIO ) -> bool:
+        ''' Determines whether colorized output should be used.
+
+            Respects NO_COLOR environment variable and TTY capabilities.
+        '''
+        if not self.colorize:
+            return False
+        if 'NO_COLOR' in os_environment:
+            return False
+        return hasattr( stream, 'isatty' ) and stream.isatty( )
+
+    @async_context_manager
+    async def provide_stream(
+        self,
+        _exits: Any = None
+    ) -> AsyncIterator[ TextIO ]:
+        ''' Provides the appropriate output stream.
+
+            Yields stdout or stderr based on target_stream setting.
+        '''
+        match self.target_stream:
+            case TargetStreams.Stdout:
+                yield standard_output
+            case TargetStreams.Stderr:
+                yield standard_error
 
 
 # Type aliases for CLI parameters
@@ -78,12 +140,21 @@ class CheckCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the check command. '''
-        print( f"Check command called with paths: {self.paths}" )
-        if not __.is_absent( self.select ):
-            print( f"  Rule selection: {self.select}" )
-        print( f"  Report format: {self.display.format}" )
-        print( f"  Context lines: {self.display.context}" )
-        print( f"  Jobs: {self.jobs}" )
+        async with self.display.provide_stream( ) as stream:
+            match self.display.format:
+                case OutputFormats.Json:
+                    # TODO: Implement JSON output
+                    stream.write( '{"status": "placeholder"}\n' )
+                case OutputFormats.Structured:
+                    # TODO: Implement structured output
+                    stream.write( 'Structured output placeholder\n' )
+                case OutputFormats.Text:
+                    stream.write( f"Checking paths: {self.paths}\n" )
+                    if not __.is_absent( self.select ):
+                        stream.write( f"  Rule selection: {self.select}\n" )
+                    stream.write(
+                        f"  Context lines: {self.display.context}\n" )
+                    stream.write( f"  Jobs: {self.jobs}\n" )
         return 0
 
 
@@ -92,6 +163,10 @@ class FixCommand( __.immut.DataclassObject ):
 
     paths: PathsArgument = ( '.',)
     select: __.Absential[ RuleSelectorArgument ] = __.absent
+    display: __.typx.Annotated[
+        DisplayOptions,
+        __.tyro.conf.arg( prefix_name = False ),
+    ] = __.dcls.field( default_factory = DisplayOptions )
     simulate: __.typx.Annotated[
         bool,
         __.tyro.conf.arg( prefix_name = False ),
@@ -110,18 +185,33 @@ class FixCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the fix command. '''
-        print( f"Fix command called with paths: {self.paths}" )
-        if not __.is_absent( self.select ):
-            print( f"  Rule selection: {self.select}" )
-        print( f"  Simulate: {self.simulate}" )
-        print( f"  Diff format: {self.diff_format.value}" )
-        print( f"  Apply dangerous: {self.apply_dangerous}" )
+        async with self.display.provide_stream( ) as stream:
+            match self.display.format:
+                case OutputFormats.Json:
+                    # TODO: Implement JSON output
+                    stream.write( '{"status": "placeholder"}\n' )
+                case OutputFormats.Structured:
+                    # TODO: Implement structured output
+                    stream.write( 'Structured output placeholder\n' )
+                case OutputFormats.Text:
+                    stream.write( f"Fixing paths: {self.paths}\n" )
+                    if not __.is_absent( self.select ):
+                        stream.write( f"  Rule selection: {self.select}\n" )
+                    stream.write( f"  Simulate: {self.simulate}\n" )
+                    stream.write(
+                        f"  Diff format: {self.diff_format.value}\n" )
+                    stream.write(
+                        f"  Apply dangerous: {self.apply_dangerous}\n" )
         return 0
 
 
 class ConfigureCommand( __.immut.DataclassObject ):
     ''' Manages configuration without destructive file editing. '''
 
+    display: __.typx.Annotated[
+        DisplayOptions,
+        __.tyro.conf.arg( prefix_name = False ),
+    ] = __.dcls.field( default_factory = DisplayOptions )
     validate: __.typx.Annotated[
         bool,
         __.tyro.conf.arg( prefix_name = False ),
@@ -141,16 +231,21 @@ class ConfigureCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the configure command. '''
-        print( "Configure command called" )
-        print( f"  Validate: {self.validate}" )
-        print( f"  Interactive: {self.interactive}" )
-        print( f"  Display effective: {self.display_effective}" )
+        async with self.display.provide_stream( ) as stream:
+            stream.write( "Configure command\n" )
+            stream.write( f"  Validate: {self.validate}\n" )
+            stream.write( f"  Interactive: {self.interactive}\n" )
+            stream.write( f"  Display effective: {self.display_effective}\n" )
         return 0
 
 
 class DescribeRulesCommand( __.immut.DataclassObject ):
     ''' Lists all available rules with descriptions. '''
 
+    display: __.typx.Annotated[
+        DisplayOptions,
+        __.tyro.conf.arg( prefix_name = False ),
+    ] = __.dcls.field( default_factory = DisplayOptions )
     details: __.typx.Annotated[
         bool,
         __.tyro.conf.arg( prefix_name = False ),
@@ -161,8 +256,9 @@ class DescribeRulesCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the describe rules command. '''
-        print( "Describe rules command called" )
-        print( f"  Details: {self.details}" )
+        async with self.display.provide_stream( ) as stream:
+            stream.write( "Available rules\n" )
+            stream.write( f"  Details: {self.details}\n" )
         return 0
 
 
@@ -170,6 +266,10 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
     ''' Displays detailed information for a specific rule. '''
 
     rule_id: __.tyro.conf.Positional[ str ]
+    display: __.typx.Annotated[
+        DisplayOptions,
+        __.tyro.conf.arg( prefix_name = False ),
+    ] = __.dcls.field( default_factory = DisplayOptions )
     details: __.typx.Annotated[
         bool,
         __.tyro.conf.arg( prefix_name = False ),
@@ -180,8 +280,9 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the describe rule command. '''
-        print( f"Describe rule command called for: {self.rule_id}" )
-        print( f"  Details: {self.details}" )
+        async with self.display.provide_stream( ) as stream:
+            stream.write( f"Rule: {self.rule_id}\n" )
+            stream.write( f"  Details: {self.details}\n" )
         return 0
 
 
@@ -207,6 +308,10 @@ class DescribeCommand( __.immut.DataclassObject ):
 class ServeCommand( __.immut.DataclassObject ):
     ''' Starts a protocol server (future implementation). '''
 
+    display: __.typx.Annotated[
+        DisplayOptions,
+        __.tyro.conf.arg( prefix_name = False ),
+    ] = __.dcls.field( default_factory = DisplayOptions )
     protocol: __.typx.Annotated[
         __.typx.Literal[ 'lsp', 'mcp' ],
         __.tyro.conf.arg( prefix_name = False ),
@@ -215,8 +320,9 @@ class ServeCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the serve command. '''
-        print( f"Serve command called with protocol: {self.protocol}" )
-        print( "  (Not yet implemented)" )
+        async with self.display.provide_stream( ) as stream:
+            stream.write( f"Protocol server: {self.protocol}\n" )
+            stream.write( "  (Not yet implemented)\n" )
         return 0
 
 
@@ -253,8 +359,7 @@ class Cli( __.immut.DataclassObject ):
 
     async def __call__( self ) -> None:
         ''' Invokes selected subcommand after system preparation. '''
-        if self.verbose:
-            print( "Verbose mode enabled" )
+        # TODO: Implement verbose logging setup
         exit_code = await self.command( )
         raise SystemExit( exit_code )
 
