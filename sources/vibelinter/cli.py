@@ -23,13 +23,6 @@
 # ruff: noqa: F821
 
 
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager as async_context_manager
-from os import environ as os_environment
-from sys import stderr as standard_error
-from sys import stdout as standard_output
-from typing import Any, TextIO
-
 from . import __
 
 
@@ -83,31 +76,31 @@ class DisplayOptions( __.immut.DataclassObject ):
         __.ddoc.Doc( ''' Render output on stdout or stderr. ''' )
     ] = TargetStreams.Stdout
 
-    def determine_colorization( self, stream: TextIO ) -> bool:
+    def determine_colorization( self, stream: __.typx.TextIO ) -> bool:
         ''' Determines whether colorized output should be used.
 
             Respects NO_COLOR environment variable and TTY capabilities.
         '''
         if not self.colorize:
             return False
-        if 'NO_COLOR' in os_environment:
+        if 'NO_COLOR' in __.os.environ:
             return False
         return hasattr( stream, 'isatty' ) and stream.isatty( )
 
-    @async_context_manager
+    @__.contextlib.asynccontextmanager
     async def provide_stream(
         self,
-        _exits: Any = None
-    ) -> AsyncIterator[ TextIO ]:
+        _exits: __.typx.Any = None
+    ) -> __.cabc.AsyncIterator[ __.typx.TextIO ]:
         ''' Provides the appropriate output stream.
 
             Yields stdout or stderr based on target_stream setting.
         '''
         match self.target_stream:
             case TargetStreams.Stdout:
-                yield standard_output
+                yield __.sys.stdout
             case TargetStreams.Stderr:
-                yield standard_error
+                yield __.sys.stderr
 
 
 # Type aliases for CLI parameters
@@ -121,6 +114,34 @@ PathsArgument: __.typx.TypeAlias = __.typx.Annotated[
     __.tyro.conf.arg( prefix_name = False ),
     __.ddoc.Doc( ''' Files or directories to analyze. ''' )
 ]
+
+
+async def _render_result(
+    display: DisplayOptions,
+    data: dict[ str, __.typx.Any ],
+) -> None:
+    ''' Centralizes output rendering logic across all commands.
+
+        Dispatches to format-specific renderers based on display options.
+        This prevents duplication of match/case statements in each command.
+    '''
+    async with display.provide_stream( ) as stream:
+        match display.format:
+            case OutputFormats.Json:
+                import json
+                stream.write( json.dumps( data ) )
+                stream.write( '\n' )
+            case OutputFormats.Structured:
+                # TODO: Implement structured output
+                stream.write( 'Structured output placeholder\n' )
+                for key, value in data.items( ):
+                    stream.write( f"  {key}: {value}\n" )
+            case OutputFormats.Text:
+                for key, value in data.items( ):
+                    if key == '_title':
+                        stream.write( f"{value}\n" )
+                    else:
+                        stream.write( f"  {key}: {value}\n" )
 
 
 class CheckCommand( __.immut.DataclassObject ):
@@ -140,21 +161,14 @@ class CheckCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the check command. '''
-        async with self.display.provide_stream( ) as stream:
-            match self.display.format:
-                case OutputFormats.Json:
-                    # TODO: Implement JSON output
-                    stream.write( '{"status": "placeholder"}\n' )
-                case OutputFormats.Structured:
-                    # TODO: Implement structured output
-                    stream.write( 'Structured output placeholder\n' )
-                case OutputFormats.Text:
-                    stream.write( f"Checking paths: {self.paths}\n" )
-                    if not __.is_absent( self.select ):
-                        stream.write( f"  Rule selection: {self.select}\n" )
-                    stream.write(
-                        f"  Context lines: {self.display.context}\n" )
-                    stream.write( f"  Jobs: {self.jobs}\n" )
+        data: dict[ str, __.typx.Any ] = {
+            '_title': f'Checking paths: {self.paths}',
+            'Context lines': self.display.context,
+            'Jobs': self.jobs,
+        }
+        if not __.is_absent( self.select ):
+            data[ 'Rule selection' ] = self.select
+        await _render_result( self.display, data )
         return 0
 
 
@@ -185,23 +199,15 @@ class FixCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the fix command. '''
-        async with self.display.provide_stream( ) as stream:
-            match self.display.format:
-                case OutputFormats.Json:
-                    # TODO: Implement JSON output
-                    stream.write( '{"status": "placeholder"}\n' )
-                case OutputFormats.Structured:
-                    # TODO: Implement structured output
-                    stream.write( 'Structured output placeholder\n' )
-                case OutputFormats.Text:
-                    stream.write( f"Fixing paths: {self.paths}\n" )
-                    if not __.is_absent( self.select ):
-                        stream.write( f"  Rule selection: {self.select}\n" )
-                    stream.write( f"  Simulate: {self.simulate}\n" )
-                    stream.write(
-                        f"  Diff format: {self.diff_format.value}\n" )
-                    stream.write(
-                        f"  Apply dangerous: {self.apply_dangerous}\n" )
+        data: dict[ str, __.typx.Any ] = {
+            '_title': f'Fixing paths: {self.paths}',
+            'Simulate': self.simulate,
+            'Diff format': self.diff_format.value,
+            'Apply dangerous': self.apply_dangerous,
+        }
+        if not __.is_absent( self.select ):
+            data[ 'Rule selection' ] = self.select
+        await _render_result( self.display, data )
         return 0
 
 
@@ -231,11 +237,13 @@ class ConfigureCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the configure command. '''
-        async with self.display.provide_stream( ) as stream:
-            stream.write( "Configure command\n" )
-            stream.write( f"  Validate: {self.validate}\n" )
-            stream.write( f"  Interactive: {self.interactive}\n" )
-            stream.write( f"  Display effective: {self.display_effective}\n" )
+        data: dict[ str, __.typx.Any ] = {
+            '_title': 'Configure command',
+            'Validate': self.validate,
+            'Interactive': self.interactive,
+            'Display effective': self.display_effective,
+        }
+        await _render_result( self.display, data )
         return 0
 
 
@@ -256,9 +264,11 @@ class DescribeRulesCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the describe rules command. '''
-        async with self.display.provide_stream( ) as stream:
-            stream.write( "Available rules\n" )
-            stream.write( f"  Details: {self.details}\n" )
+        data: dict[ str, __.typx.Any ] = {
+            '_title': 'Available rules',
+            'Details': self.details,
+        }
+        await _render_result( self.display, data )
         return 0
 
 
@@ -280,9 +290,11 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the describe rule command. '''
-        async with self.display.provide_stream( ) as stream:
-            stream.write( f"Rule: {self.rule_id}\n" )
-            stream.write( f"  Details: {self.details}\n" )
+        data: dict[ str, __.typx.Any ] = {
+            '_title': f'Rule: {self.rule_id}',
+            'Details': self.details,
+        }
+        await _render_result( self.display, data )
         return 0
 
 
@@ -320,9 +332,11 @@ class ServeCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the serve command. '''
-        async with self.display.provide_stream( ) as stream:
-            stream.write( f"Protocol server: {self.protocol}\n" )
-            stream.write( "  (Not yet implemented)\n" )
+        data = {
+            '_title': f'Protocol server: {self.protocol}',
+            'Status': '(Not yet implemented)',
+        }
+        await _render_result( self.display, data )
         return 0
 
 
