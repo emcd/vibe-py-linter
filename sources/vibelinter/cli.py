@@ -26,18 +26,38 @@
 from . import __
 
 
+class DiffFormats( __.enum.Enum ):
+    ''' Diff visualization formats. '''
+
+    Unified = 'unified'
+    Context = 'context'
+
+
+class DisplayOptions( __.immut.DataclassObject ):
+    ''' Display and output options. '''
+
+    format: __.typx.Annotated[
+        __.typx.Literal[ 'text', 'json', 'structured' ],
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc( ''' Output format for reporting. ''' )
+    ] = 'text'
+    context: __.typx.Annotated[
+        int,
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc( ''' Show context lines around violations. ''' )
+    ] = 0
+
+
 # Type aliases for CLI parameters
-OutputFormat: __.typx.TypeAlias = (
-    __.typx.Literal[ 'text', 'json', 'structured' ] )
-DiffFormat: __.typx.TypeAlias = (
-    __.typx.Literal[ 'unified', 'context' ] )
 RuleSelectorArgument: __.typx.TypeAlias = __.typx.Annotated[
     str,
-    __.ddoc.Doc( "Comma-separated VBL rule codes (e.g. VBL101,VBL201)." )
+    __.tyro.conf.arg( prefix_name = False ),
+    __.ddoc.Doc( ''' Comma-separated VBL rule codes (e.g. VBL101,VBL201). ''' )
 ]
 PathsArgument: __.typx.TypeAlias = __.typx.Annotated[
     tuple[ str, ... ],
-    __.ddoc.Doc( "Files or directories to analyze." )
+    __.tyro.conf.arg( prefix_name = False ),
+    __.ddoc.Doc( ''' Files or directories to analyze. ''' )
 ]
 
 
@@ -46,17 +66,14 @@ class CheckCommand( __.immut.DataclassObject ):
 
     paths: PathsArgument = ( '.',)
     select: __.Absential[ RuleSelectorArgument ] = __.absent
-    report_format: __.typx.Annotated[
-        OutputFormat,
-        __.ddoc.Doc( "Output format for violation reporting." )
-    ] = 'text'
-    context: __.typx.Annotated[
-        int,
-        __.ddoc.Doc( "Show context lines around violations." )
-    ] = 0
+    display: __.typx.Annotated[
+        DisplayOptions,
+        __.tyro.conf.arg( prefix_name = False ),
+    ] = __.dcls.field( default_factory = DisplayOptions )
     jobs: __.typx.Annotated[
         __.typx.Union[ int, __.typx.Literal[ 'auto' ] ],
-        __.ddoc.Doc( "Number of parallel processing jobs." )
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc( ''' Number of parallel processing jobs. ''' )
     ] = 'auto'
 
     async def __call__( self ) -> int:
@@ -64,8 +81,8 @@ class CheckCommand( __.immut.DataclassObject ):
         print( f"Check command called with paths: {self.paths}" )
         if not __.is_absent( self.select ):
             print( f"  Rule selection: {self.select}" )
-        print( f"  Report format: {self.report_format}" )
-        print( f"  Context lines: {self.context}" )
+        print( f"  Report format: {self.display.format}" )
+        print( f"  Context lines: {self.display.context}" )
         print( f"  Jobs: {self.jobs}" )
         return 0
 
@@ -77,15 +94,18 @@ class FixCommand( __.immut.DataclassObject ):
     select: __.Absential[ RuleSelectorArgument ] = __.absent
     simulate: __.typx.Annotated[
         bool,
-        __.ddoc.Doc( "Preview changes without applying them." )
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc( ''' Preview changes without applying them. ''' )
     ] = False
     diff_format: __.typx.Annotated[
-        DiffFormat,
-        __.ddoc.Doc( "Diff visualization format." )
-    ] = 'unified'
+        DiffFormats,
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc( ''' Diff visualization format. ''' )
+    ] = DiffFormats.Unified
     apply_dangerous: __.typx.Annotated[
         bool,
-        __.ddoc.Doc( "Enable potentially unsafe fixes." )
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc( ''' Enable potentially unsafe fixes. ''' )
     ] = False
 
     async def __call__( self ) -> int:
@@ -94,7 +114,7 @@ class FixCommand( __.immut.DataclassObject ):
         if not __.is_absent( self.select ):
             print( f"  Rule selection: {self.select}" )
         print( f"  Simulate: {self.simulate}" )
-        print( f"  Diff format: {self.diff_format}" )
+        print( f"  Diff format: {self.diff_format.value}" )
         print( f"  Apply dangerous: {self.apply_dangerous}" )
         return 0
 
@@ -104,15 +124,19 @@ class ConfigureCommand( __.immut.DataclassObject ):
 
     validate: __.typx.Annotated[
         bool,
-        __.ddoc.Doc( "Validate existing configuration without analysis." )
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc(
+            ''' Validate existing configuration without analysis. ''' )
     ] = False
     interactive: __.typx.Annotated[
         bool,
-        __.ddoc.Doc( "Interactive configuration wizard." )
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc( ''' Interactive configuration wizard. ''' )
     ] = False
     display_effective: __.typx.Annotated[
         bool,
-        __.ddoc.Doc( "Display effective merged configuration." )
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc( ''' Display effective merged configuration. ''' )
     ] = False
 
     async def __call__( self ) -> int:
@@ -129,9 +153,10 @@ class DescribeRulesCommand( __.immut.DataclassObject ):
 
     details: __.typx.Annotated[
         bool,
+        __.tyro.conf.arg( prefix_name = False ),
         __.ddoc.Doc(
-            "Display detailed rule information including "
-            "configuration status." )
+            ''' Display detailed rule information including '''
+            ''' configuration status. ''' )
     ] = False
 
     async def __call__( self ) -> int:
@@ -147,9 +172,10 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
     rule_id: __.tyro.conf.Positional[ str ]
     details: __.typx.Annotated[
         bool,
+        __.tyro.conf.arg( prefix_name = False ),
         __.ddoc.Doc(
-            "Display detailed rule information including "
-            "configuration status." )
+            ''' Display detailed rule information including '''
+            ''' configuration status. ''' )
     ] = False
 
     async def __call__( self ) -> int:
@@ -183,7 +209,8 @@ class ServeCommand( __.immut.DataclassObject ):
 
     protocol: __.typx.Annotated[
         __.typx.Literal[ 'lsp', 'mcp' ],
-        __.ddoc.Doc( "Protocol server to start." )
+        __.tyro.conf.arg( prefix_name = False ),
+        __.ddoc.Doc( ''' Protocol server to start. ''' )
     ] = 'mcp'
 
     async def __call__( self ) -> int:
@@ -221,7 +248,7 @@ class Cli( __.immut.DataclassObject ):
     ]
     verbose: __.typx.Annotated[
         bool,
-        __.ddoc.Doc( "Enable verbose output." )
+        __.ddoc.Doc( ''' Enable verbose output. ''' )
     ] = False
 
     async def __call__( self ) -> None:

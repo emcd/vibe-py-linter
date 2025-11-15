@@ -1,8 +1,34 @@
-ComparisonResult        # unused variable
-NominativeArguments     # unused variable
-PositionalArguments     # unused variable
-package_name            # unused variable
+# vim: set filetype=python fileencoding=utf-8:
+# -*- coding: utf-8 -*-
 
-# --- BEGIN: Injected by Copier ---
-Omnierror              # unused base exception class for derivation
-# --- END: Injected by Copier ---
+#============================================================================#
+#                                                                            #
+#  Licensed under the Apache License, Version 2.0 (the "License");           #
+#  you may not use this file except in compliance with the License.          #
+#  You may obtain a copy of the License at                                   #
+#                                                                            #
+#      http://www.apache.org/licenses/LICENSE-2.0                            #
+#                                                                            #
+#  Unless required by applicable law or agreed to in writing, software       #
+#  distributed under the License is distributed on an "AS IS" BASIS,         #
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  #
+#  See the License for the specific language governing permissions and       #
+#  limitations under the License.                                            #
+#                                                                            #
+#============================================================================#
+
+
+''' Whitelisted names for Vulture dead code detector. '''
+
+
+# Enum members used as CLI options
+Context  # DiffFormats.Context
+
+# Type aliases for future use
+ComparisonResult  # nomina.py
+NominativeArguments  # nomina.py
+PositionalArguments  # nomina.py
+package_name  # nomina.py
+
+# Exception base classes
+Omnierror  # exceptions.py
