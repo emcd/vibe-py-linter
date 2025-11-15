@@ -23,6 +23,8 @@
 # ruff: noqa: F821
 
 
+from appcore import cli as _appcore_cli
+
 from . import __
 
 
@@ -41,18 +43,10 @@ class OutputFormats( __.enum.Enum ):
     Structured = 'structured'
 
 
-class TargetStreams( __.enum.Enum ):
-    ''' Standard output streams. '''
+class DisplayOptions( _appcore_cli.DisplayOptions ):
+    ''' Display options extending appcore.cli with output format selection.
 
-    Stdout = 'stdout'
-    Stderr = 'stderr'
-
-
-class DisplayOptions( __.immut.DataclassObject ):
-    ''' Display and output options for CLI commands.
-
-        Provides standardized handling of output streams, formats,
-        and terminal capabilities following appcore.cli patterns.
+        Adds format-specific output control for linter reporting.
     '''
 
     format: __.typx.Annotated[
@@ -65,42 +59,6 @@ class DisplayOptions( __.immut.DataclassObject ):
         __.tyro.conf.arg( prefix_name = False ),
         __.ddoc.Doc( ''' Show context lines around violations. ''' )
     ] = 0
-    colorize: __.typx.Annotated[
-        bool,
-        __.tyro.conf.arg( prefix_name = False ),
-        __.ddoc.Doc( ''' Enable colored output and terminal formatting. ''' )
-    ] = True
-    target_stream: __.typx.Annotated[
-        TargetStreams,
-        __.tyro.conf.arg( prefix_name = False ),
-        __.ddoc.Doc( ''' Render output on stdout or stderr. ''' )
-    ] = TargetStreams.Stdout
-
-    def determine_colorization( self, stream: __.typx.TextIO ) -> bool:
-        ''' Determines whether colorized output should be used.
-
-            Respects NO_COLOR environment variable and TTY capabilities.
-        '''
-        if not self.colorize:
-            return False
-        if 'NO_COLOR' in __.os.environ:
-            return False
-        return hasattr( stream, 'isatty' ) and stream.isatty( )
-
-    @__.contextlib.asynccontextmanager
-    async def provide_stream(
-        self,
-        _exits: __.typx.Any = None
-    ) -> __.cabc.AsyncIterator[ __.typx.TextIO ]:
-        ''' Provides the appropriate output stream.
-
-            Yields stdout or stderr based on target_stream setting.
-        '''
-        match self.target_stream:
-            case TargetStreams.Stdout:
-                yield __.sys.stdout
-            case TargetStreams.Stderr:
-                yield __.sys.stderr
 
 
 # Type aliases for CLI parameters
@@ -116,32 +74,175 @@ PathsArgument: __.typx.TypeAlias = __.typx.Annotated[
 ]
 
 
-async def _render_result(
-    display: DisplayOptions,
-    data: dict[ str, __.typx.Any ],
-) -> None:
-    ''' Centralizes output rendering logic across all commands.
+# Result classes for self-rendering output
 
-        Dispatches to format-specific renderers based on display options.
-        This prevents duplication of match/case statements in each command.
+
+class CheckResult( __.immut.DataclassObject ):
+    ''' Result from check command execution. '''
+
+    paths: tuple[ str, ... ]
+    context_lines: int
+    jobs: __.typx.Union[ int, str ]
+    rule_selection: __.Absential[ str ] = __.absent
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders result as JSON-compatible dictionary. '''
+        result: dict[ str, __.typx.Any ] = {
+            'paths': list( self.paths ),
+            'context_lines': self.context_lines,
+            'jobs': self.jobs,
+        }
+        if not __.is_absent( self.rule_selection ):
+            result[ 'rule_selection' ] = self.rule_selection
+        return result
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders result as text lines. '''
+        lines = [ f'Checking paths: {self.paths}' ]
+        if not __.is_absent( self.rule_selection ):
+            lines.append( f'  Rule selection: {self.rule_selection}' )
+        lines.append( f'  Context lines: {self.context_lines}' )
+        lines.append( f'  Jobs: {self.jobs}' )
+        return tuple( lines )
+
+
+class FixResult( __.immut.DataclassObject ):
+    ''' Result from fix command execution. '''
+
+    paths: tuple[ str, ... ]
+    simulate: bool
+    diff_format: str
+    apply_dangerous: bool
+    rule_selection: __.Absential[ str ] = __.absent
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders result as JSON-compatible dictionary. '''
+        result: dict[ str, __.typx.Any ] = {
+            'paths': list( self.paths ),
+            'simulate': self.simulate,
+            'diff_format': self.diff_format,
+            'apply_dangerous': self.apply_dangerous,
+        }
+        if not __.is_absent( self.rule_selection ):
+            result[ 'rule_selection' ] = self.rule_selection
+        return result
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders result as text lines. '''
+        lines = [ f'Fixing paths: {self.paths}' ]
+        if not __.is_absent( self.rule_selection ):
+            lines.append( f'  Rule selection: {self.rule_selection}' )
+        lines.append( f'  Simulate: {self.simulate}' )
+        lines.append( f'  Diff format: {self.diff_format}' )
+        lines.append( f'  Apply dangerous: {self.apply_dangerous}' )
+        return tuple( lines )
+
+
+class ConfigureResult( __.immut.DataclassObject ):
+    ''' Result from configure command execution. '''
+
+    validate: bool
+    interactive: bool
+    display_effective: bool
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders result as JSON-compatible dictionary. '''
+        return {
+            'validate': self.validate,
+            'interactive': self.interactive,
+            'display_effective': self.display_effective,
+        }
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders result as text lines. '''
+        return (
+            'Configure command',
+            f'  Validate: {self.validate}',
+            f'  Interactive: {self.interactive}',
+            f'  Display effective: {self.display_effective}',
+        )
+
+
+class DescribeRulesResult( __.immut.DataclassObject ):
+    ''' Result from describe rules command execution. '''
+
+    details: bool
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders result as JSON-compatible dictionary. '''
+        return { 'details': self.details }
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders result as text lines. '''
+        return (
+            'Available rules',
+            f'  Details: {self.details}',
+        )
+
+
+class DescribeRuleResult( __.immut.DataclassObject ):
+    ''' Result from describe rule command execution. '''
+
+    rule_id: str
+    details: bool
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders result as JSON-compatible dictionary. '''
+        return {
+            'rule_id': self.rule_id,
+            'details': self.details,
+        }
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders result as text lines. '''
+        return (
+            f'Rule: {self.rule_id}',
+            f'  Details: {self.details}',
+        )
+
+
+class ServeResult( __.immut.DataclassObject ):
+    ''' Result from serve command execution. '''
+
+    protocol: str
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders result as JSON-compatible dictionary. '''
+        return {
+            'protocol': self.protocol,
+            'status': 'not_implemented',
+        }
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders result as text lines. '''
+        return (
+            f'Protocol server: {self.protocol}',
+            '  (Not yet implemented)',
+        )
+
+
+async def _render_and_print_result(
+    result: __.typx.Union[
+        CheckResult, FixResult, ConfigureResult,
+        DescribeRulesResult, DescribeRuleResult, ServeResult
+    ],
+    display: DisplayOptions,
+    exits: __.contextlib.AsyncExitStack,
+) -> None:
+    ''' Renders and prints a result object based on display options.
+
+        Follows the pattern from librovore for centralized rendering dispatch.
     '''
-    async with display.provide_stream( ) as stream:
-        match display.format:
-            case OutputFormats.Json:
-                import json
-                stream.write( json.dumps( data ) )
+    stream = await display.provide_stream( exits )
+    match display.format:
+        case OutputFormats.Json:
+            import json
+            stream.write( json.dumps( result.render_as_json( ) ) )
+            stream.write( '\n' )
+        case OutputFormats.Structured | OutputFormats.Text:
+            for line in result.render_as_text( ):
+                stream.write( line )
                 stream.write( '\n' )
-            case OutputFormats.Structured:
-                # TODO: Implement structured output
-                stream.write( 'Structured output placeholder\n' )
-                for key, value in data.items( ):
-                    stream.write( f"  {key}: {value}\n" )
-            case OutputFormats.Text:
-                for key, value in data.items( ):
-                    if key == '_title':
-                        stream.write( f"{value}\n" )
-                    else:
-                        stream.write( f"  {key}: {value}\n" )
 
 
 class CheckCommand( __.immut.DataclassObject ):
@@ -161,14 +262,14 @@ class CheckCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the check command. '''
-        data: dict[ str, __.typx.Any ] = {
-            '_title': f'Checking paths: {self.paths}',
-            'Context lines': self.display.context,
-            'Jobs': self.jobs,
-        }
-        if not __.is_absent( self.select ):
-            data[ 'Rule selection' ] = self.select
-        await _render_result( self.display, data )
+        result = CheckResult(
+            paths = self.paths,
+            context_lines = self.display.context,
+            jobs = self.jobs,
+            rule_selection = self.select,
+        )
+        async with __.contextlib.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -199,15 +300,15 @@ class FixCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the fix command. '''
-        data: dict[ str, __.typx.Any ] = {
-            '_title': f'Fixing paths: {self.paths}',
-            'Simulate': self.simulate,
-            'Diff format': self.diff_format.value,
-            'Apply dangerous': self.apply_dangerous,
-        }
-        if not __.is_absent( self.select ):
-            data[ 'Rule selection' ] = self.select
-        await _render_result( self.display, data )
+        result = FixResult(
+            paths = self.paths,
+            simulate = self.simulate,
+            diff_format = self.diff_format.value,
+            apply_dangerous = self.apply_dangerous,
+            rule_selection = self.select,
+        )
+        async with __.contextlib.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -237,13 +338,13 @@ class ConfigureCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the configure command. '''
-        data: dict[ str, __.typx.Any ] = {
-            '_title': 'Configure command',
-            'Validate': self.validate,
-            'Interactive': self.interactive,
-            'Display effective': self.display_effective,
-        }
-        await _render_result( self.display, data )
+        result = ConfigureResult(
+            validate = self.validate,
+            interactive = self.interactive,
+            display_effective = self.display_effective,
+        )
+        async with __.contextlib.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -264,11 +365,9 @@ class DescribeRulesCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the describe rules command. '''
-        data: dict[ str, __.typx.Any ] = {
-            '_title': 'Available rules',
-            'Details': self.details,
-        }
-        await _render_result( self.display, data )
+        result = DescribeRulesResult( details = self.details )
+        async with __.contextlib.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -290,11 +389,12 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the describe rule command. '''
-        data: dict[ str, __.typx.Any ] = {
-            '_title': f'Rule: {self.rule_id}',
-            'Details': self.details,
-        }
-        await _render_result( self.display, data )
+        result = DescribeRuleResult(
+            rule_id = self.rule_id,
+            details = self.details,
+        )
+        async with __.contextlib.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -332,11 +432,9 @@ class ServeCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the serve command. '''
-        data = {
-            '_title': f'Protocol server: {self.protocol}',
-            'Status': '(Not yet implemented)',
-        }
-        await _render_result( self.display, data )
+        result = ServeResult( protocol = self.protocol )
+        async with __.contextlib.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
