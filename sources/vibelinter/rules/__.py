@@ -1,4 +1,3 @@
-# type: ignore
 # vim: set filetype=python fileencoding=utf-8:
 # -*- coding: utf-8 -*-
 
@@ -19,12 +18,10 @@
 #============================================================================#
 
 
-# ruff: noqa
 
 ''' Common imports for rules subsystem. '''
 
-# ruff: noqa: F401
 
 
-from ..__ import *
-from . import violations
+from ..__ import *  # noqa: F403
+from . import violations  # noqa: F401

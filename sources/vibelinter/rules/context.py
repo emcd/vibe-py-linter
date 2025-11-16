@@ -1,7 +1,4 @@
-# type: ignore
 # vim: set filetype=python fileencoding=utf-8:
-# ruff: noqa: E501
-
 # -*- coding: utf-8 -*-
 
 #============================================================================#
@@ -21,28 +18,33 @@
 #============================================================================#
 
 
-''' Utilities for extracting source code context around violations for enhanced reporting. '''
+''' Context extraction utilities for enhanced violation reporting. '''
 
 
 from . import __
 
 
 class ContextExtractor:
-    ''' Utilities for extracting source code context around violations for enhanced reporting. '''
+    ''' Extracts source code context around violations. '''
 
     def __init__(
         self,
         source_lines: __.typx.Annotated[
-            tuple[ str, ... ], __.ddoc.Doc( 'Source file lines for context extraction.' ) ]
+            tuple[ str, ... ],
+            __.ddoc.Doc( 'Source file lines for context extraction.' ) ]
     ) -> None:
         self.source_lines = source_lines
 
     def extract_violation_context(
         self,
         violation: __.typx.Annotated[
-            __.violations.Violation, __.ddoc.Doc( 'Violation to extract context for.' ) ],
+            __.violations.Violation,
+            __.ddoc.Doc( 'Violation to extract context for.' ) ],
         context_size: __.typx.Annotated[
-            int, __.ddoc.Doc( 'Number of lines to show before and after violation.' ) ] = 2,
+            int,
+            __.ddoc.Doc(
+                'Number of lines to show before and after violation.'
+            ) ] = 2,
     ) -> __.typx.Annotated[
         __.violations.ViolationContext,
         __.ddoc.Doc( 'Violation with surrounding source context.' ) ]:
@@ -69,17 +71,23 @@ class ContextExtractor:
             __.violations.ViolationContext,
             __.ddoc.Doc( 'Violation context to format for display.' ) ],
         highlight_line: __.typx.Annotated[
-            bool, __.ddoc.Doc( 'Whether to highlight the violation line.' ) ] = True,
+            bool,
+            __.ddoc.Doc( 'Whether to highlight the violation line.' ) ] = (
+                True ),
     ) -> __.typx.Annotated[
         tuple[ str, ... ],
-        __.ddoc.Doc( 'Formatted context lines with line numbers and highlighting.' ) ]:
-        ''' Formats violation context for display with line numbers and optional highlighting. '''
+        __.ddoc.Doc(
+            'Formatted context lines with line numbers and highlighting.'
+        ) ]:
+        ''' Formats violation context for display. '''
         formatted_lines: list[ str ] = [ ]
         violation_line = context.violation.line
 
         for i, line in enumerate( context.context_lines ):
             line_number = context.context_start_line + i
-            prefix = '→ ' if highlight_line and line_number == violation_line else '  '
+            prefix = (
+                '→ ' if highlight_line and line_number == violation_line
+                else '  ' )
             formatted_lines.append( f'{line_number:4d}{prefix}{line}' )
 
         return tuple( formatted_lines )
@@ -90,10 +98,14 @@ def extract_contexts_for_violations(
         __.violations.ViolationSequence,
         __.ddoc.Doc( 'Sequence of violations to extract contexts for.' ) ],
     source_lines: __.typx.Annotated[
-        __.cabc.Sequence[ str ], __.ddoc.Doc( 'Source file lines for context extraction.' ) ],
+        __.cabc.Sequence[ str ],
+        __.ddoc.Doc( 'Source file lines for context extraction.' ) ],
     context_size: __.typx.Annotated[
-        int, __.ddoc.Doc( 'Number of lines to show before and after each violation.' ) ] = 2,
-) -> __.violations.ViolationContextSequence:
+        int,
+        __.ddoc.Doc(
+            'Number of lines to show before and after each violation.'
+        ) ] = 2,
+) -> tuple[ __.violations.ViolationContext, ... ]:
     ''' Extracts contexts for multiple violations efficiently. '''
     extractor = ContextExtractor( tuple( source_lines ) )
     return tuple(

@@ -1,4 +1,3 @@
-# type: ignore
 # vim: set filetype=python fileencoding=utf-8:
 # -*- coding: utf-8 -*-
 
@@ -19,35 +18,39 @@
 #============================================================================#
 
 
-# ruff: noqa
 
 ''' Central linter engine coordinating single-pass CST analysis. '''
 
-# ruff: noqa: E501
-# pyright: reportUndefinedVariable=false, reportArgumentType=false
-
-from __future__ import annotations
 
 import pathlib
 import time
 
 from . import __
 from .rules import context, violations
+from .rules.registry import RuleRegistryManager
+from .rules.violations import ViolationContext
 
 
 class EngineConfiguration( __.immut.DataclassObject ):
     ''' Configuration for linter engine behavior and rule selection. '''
 
     enabled_rules: __.typx.Annotated[
-        frozenset[ str ], __.ddoc.Doc( 'VBL codes of rules to execute.' ) ]
+        frozenset[ str ],
+        __.ddoc.Doc( 'VBL codes of rules to execute.' ) ]
     rule_parameters: __.typx.Annotated[
-        __.immut.Dictionary[ str, __.immut.Dictionary[ str, __.typx.Any ] ],
-        __.ddoc.Doc( 'Rule-specific configuration parameters indexed by VBL code.' ) ] = (
-            __.immut.Dictionary( ) )
+        __.immut.Dictionary[
+            str, __.immut.Dictionary[ str, __.typx.Any ] ],
+        __.ddoc.Doc(
+            'Rule-specific configuration parameters indexed by VBL code.'
+        ) ] = __.immut.Dictionary( )
     context_size: __.typx.Annotated[
-        int, __.ddoc.Doc( 'Number of context lines to extract around violations.' ) ] = 2
+        int,
+        __.ddoc.Doc(
+            'Number of context lines to extract around violations.' ) ] = 2
     include_context: __.typx.Annotated[
-        bool, __.ddoc.Doc( 'Whether to extract source context for violations.' ) ] = True
+        bool,
+        __.ddoc.Doc(
+            'Whether to extract source context for violations.' ) ] = True
 
 
 class Report( __.immut.DataclassObject ):
@@ -57,26 +60,31 @@ class Report( __.immut.DataclassObject ):
         tuple[ violations.Violation, ... ],
         __.ddoc.Doc( 'All violations detected during analysis.' ) ]
     contexts: __.typx.Annotated[
-        tuple[ violations.ViolationContext, ... ],
+        tuple[ ViolationContext, ... ],
         __.ddoc.Doc( 'Violation contexts when context extraction enabled.' ) ]
     filename: __.typx.Annotated[
         str, __.ddoc.Doc( 'Path to analyzed source file.' ) ]
     rule_count: __.typx.Annotated[
         int, __.ddoc.Doc( 'Number of rules executed during analysis.' ) ]
     analysis_duration_ms: __.typx.Annotated[
-        float, __.ddoc.Doc( 'Time spent in analysis phase excluding parsing.' ) ]
+        float,
+        __.ddoc.Doc( 'Time spent in analysis phase excluding parsing.' ) ]
 
 
 class Engine:
-    ''' Central orchestrator for linting analysis implementing single-pass CST traversal. '''
+    ''' Central orchestrator for linting analysis.
+
+        Implements single-pass CST traversal with multiple rule execution.
+    '''
 
     def __init__(
         self,
         registry_manager: __.typx.Annotated[
-            'RuleRegistryManager',  # Forward reference to avoid circular import
+            RuleRegistryManager,
             __.ddoc.Doc( 'Rule registry for instantiating rules.' ) ],
         configuration: __.typx.Annotated[
-            EngineConfiguration, __.ddoc.Doc( 'Engine configuration and rule selection.' ) ],
+            EngineConfiguration,
+            __.ddoc.Doc( 'Engine configuration and rule selection.' ) ],
     ) -> None:
         self.registry_manager = registry_manager
         self.configuration = configuration
@@ -84,83 +92,111 @@ class Engine:
     def lint_file(
         self,
         file_path: __.typx.Annotated[
-            pathlib.Path, __.ddoc.Doc( 'Path to Python source file to analyze.' ) ]
+            pathlib.Path,
+            __.ddoc.Doc( 'Path to Python source file to analyze.' ) ]
     ) -> __.typx.Annotated[
         Report,
-        __.ddoc.Doc( 'Analysis results including violations and metadata.' ),
-        __.ddoc.Raises( 'RuleExecuteFailure', 'If rule execution fails unrecoverably.' ),
-        __.ddoc.Raises( 'MetadataProvideFailure', 'If LibCST metadata initialization fails.' ) ]:
+        __.ddoc.Doc(
+            'Analysis results including violations and metadata.' ) ]:
         ''' Analyzes a Python source file and returns violations. '''
         source_code = file_path.read_text( encoding = 'utf-8' )
         return self.lint_source( source_code, str( file_path ) )
 
+    def _create_metadata_wrapper(
+        self, source_code: str, filename: str
+    ) -> tuple[ __.libcst.metadata.MetadataWrapper, tuple[ str, ... ] ]:
+        ''' Parses source and creates metadata wrapper. '''
+        from .exceptions import MetadataProvideFailure
+
+        module = __.libcst.parse_module( source_code )
+        source_lines = tuple( source_code.splitlines( ) )
+
+        try:
+            wrapper = __.libcst.metadata.MetadataWrapper( module )
+        except Exception as exc:
+            raise MetadataProvideFailure( filename ) from exc
+
+        return wrapper, source_lines
+
+    def _instantiate_rules(
+        self,
+        wrapper: __.libcst.metadata.MetadataWrapper,
+        source_lines: tuple[ str, ... ],
+        filename: str
+    ) -> list[ __.typx.Any ]:
+        ''' Instantiates all enabled rules with configuration. '''
+        from .exceptions import RuleExecuteFailure
+        from .rules.base import BaseRule
+
+        rules: list[ BaseRule ] = [ ]
+        for vbl_code in self.configuration.enabled_rules:
+            params = self.configuration.rule_parameters.get(
+                vbl_code, __.immut.Dictionary( ) )
+            try:
+                rule = self.registry_manager.produce_rule_instance(
+                    vbl_code = vbl_code,
+                    filename = filename,
+                    wrapper = wrapper,
+                    source_lines = source_lines,
+                    **params
+                )
+                rules.append( rule )
+            except Exception as exc:
+                raise RuleExecuteFailure( vbl_code ) from exc
+
+        return rules
+
+    def _execute_rules(
+        self,
+        rules: list[ __.typx.Any ],
+        wrapper: __.libcst.metadata.MetadataWrapper
+    ) -> None:
+        ''' Executes rules via single-pass CST traversal. '''
+        from .exceptions import RuleExecuteFailure
+
+        for rule in rules:
+            try:
+                wrapper.visit( rule )
+            except Exception as exc:  # noqa: PERF203
+                raise RuleExecuteFailure( rule.rule_id ) from exc
+
+    def _collect_violations(
+        self, rules: list[ __.typx.Any ]
+    ) -> list[ violations.Violation ]:
+        ''' Collects and sorts violations from all rules. '''
+        all_violations: list[ violations.Violation ] = [ ]
+        for rule in rules:
+            all_violations.extend( rule.violations )
+
+        all_violations.sort( key = lambda v: ( v.line, v.column ) )
+        return all_violations
+
     def lint_source(
         self,
         source_code: __.typx.Annotated[
-            str, __.ddoc.Doc( 'Python source code to analyze.' ) ],
+            str,
+            __.ddoc.Doc( 'Python source code to analyze.' ) ],
         filename: __.typx.Annotated[
-            str, __.ddoc.Doc( 'Logical filename for source code.' ) ] = '<string>',
+            str,
+            __.ddoc.Doc( 'Logical filename for source code.' ) ] = '<string>',
     ) -> __.typx.Annotated[
         Report,
-        __.ddoc.Doc( 'Analysis results including violations and metadata.' ),
-        __.ddoc.Raises( 'RuleExecuteFailure', 'If rule execution fails unrecoverably.' ),
-        __.ddoc.Raises( 'MetadataProvideFailure', 'If LibCST metadata initialization fails.' ) ]:
+        __.ddoc.Doc(
+            'Analysis results including violations and metadata.' ) ]:
         ''' Analyzes Python source code and returns violations. '''
         from .exceptions import MetadataProvideFailure, RuleExecuteFailure
 
         analysis_start_time = time.perf_counter( )
 
         try:
-            # Parse source code into CST
-            module = __.libcst.parse_module( source_code )
-            source_lines = tuple( source_code.splitlines( ) )
-
-            # Create metadata wrapper with required providers
-            try:
-                wrapper = __.libcst.metadata.MetadataWrapper( module )
-            except Exception as exc:
-                raise MetadataProvideFailure(
-                    f'Failed to initialize LibCST metadata providers for {filename!r}'
-                ) from exc
-
-            # Instantiate enabled rules
-            rules = [ ]
-            for vbl_code in self.configuration.enabled_rules:
-                # Get rule-specific parameters if any
-                params = self.configuration.rule_parameters.get( vbl_code, { } )
-                try:
-                    rule = self.registry_manager.produce_rule_instance(
-                        vbl_code = vbl_code,
-                        filename = filename,
-                        wrapper = wrapper,
-                        source_lines = source_lines,
-                        **params
-                    )
-                    rules.append( rule )
-                except Exception as exc:
-                    raise RuleExecuteFailure(
-                        f'Failed to instantiate rule {vbl_code!r} for {filename!r}'
-                    ) from exc
-
-            # Single-pass CST traversal with all rules
-            for rule in rules:
-                try:
-                    wrapper.visit( rule )
-                except Exception as exc:
-                    raise RuleExecuteFailure(
-                        f'Rule {rule.rule_id!r} failed during analysis of {filename!r}'
-                    ) from exc
-
-            # Collect violations from all rules
-            all_violations: list[ violations.Violation ] = [ ]
-            for rule in rules:
-                all_violations.extend( rule.violations )
-
-            # Sort violations by location (line, then column)
-            all_violations.sort( key = lambda v: ( v.line, v.column ) )
+            wrapper, source_lines = self._create_metadata_wrapper(
+                source_code, filename )
+            rules = self._instantiate_rules( wrapper, source_lines, filename )
+            self._execute_rules( rules, wrapper )
+            all_violations = self._collect_violations( rules )
 
             # Extract contexts if enabled
-            violation_contexts: tuple[ violations.ViolationContext, ... ] = ( )
+            violation_contexts: tuple[ ViolationContext, ... ] = ( )
             if self.configuration.include_context and all_violations:
                 violation_contexts = context.extract_contexts_for_violations(
                     all_violations,
@@ -168,7 +204,8 @@ class Engine:
                     self.configuration.context_size
                 )
 
-            analysis_duration_ms = ( time.perf_counter( ) - analysis_start_time ) * 1000
+            analysis_duration_ms = (
+                ( time.perf_counter( ) - analysis_start_time ) * 1000 )
 
             return Report(
                 violations = tuple( all_violations ),
@@ -183,9 +220,7 @@ class Engine:
             raise
         except Exception as exc:
             # Wrap unexpected exceptions
-            raise RuleExecuteFailure(
-                f'Unexpected error during analysis of {filename!r}'
-            ) from exc
+            raise RuleExecuteFailure( filename ) from exc
 
     def lint_files(
         self,
@@ -195,13 +230,13 @@ class Engine:
     ) -> __.typx.Annotated[
         tuple[ Report, ... ],
         __.ddoc.Doc( 'Analysis results for all files.' ) ]:
-        ''' Analyzes multiple Python source files and returns violations for each. '''
+        ''' Analyzes multiple Python source files. '''
         reports: list[ Report ] = [ ]
         for file_path in file_paths:
             try:
                 report = self.lint_file( file_path )
                 reports.append( report )
-            except Exception:
+            except Exception:  # noqa: PERF203, S112
                 # For batch analysis, we continue on errors
                 # Individual file errors are logged but don't stop the batch
                 # Future enhancement: collect errors in report

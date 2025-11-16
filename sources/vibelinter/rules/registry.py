@@ -1,7 +1,4 @@
-# type: ignore
 # vim: set filetype=python fileencoding=utf-8:
-# ruff: noqa: E501, TRY003
-
 # -*- coding: utf-8 -*-
 
 #============================================================================#
@@ -21,47 +18,54 @@
 #============================================================================#
 
 
-# ruff: noqa: E501, TRY003
-# pyright: reportUndefinedVariable=false, reportArgumentType=false, reportUnknownParameterType=false, reportUnknownVariableType=false
-
-from __future__ import annotations
-
-
-# ruff: noqa
-
 ''' Rule registry system for discovery and instantiation. '''
 
 
 from . import __
+from .base import BaseRule
 
 
 class RuleDescriptor( __.immut.DataclassObject ):
-    ''' Describes rule metadata for registry and configuration systems. '''
+    ''' Describes rule metadata for registry and configuration. '''
 
     vbl_code: __.typx.Annotated[
-        str, __.ddoc.Doc( 'VBL code identifier (e.g., "VBL101").' ) ]
+        str,
+        __.ddoc.Doc( 'VBL code identifier (e.g., "VBL101").' ) ]
     descriptive_name: __.typx.Annotated[
-        str, __.ddoc.Doc( 'Hyphen-separated descriptive name (e.g., "blank-line-elimination").' ) ]
+        str,
+        __.ddoc.Doc(
+            'Hyphen-separated descriptive name (e.g., '
+            '"blank-line-elimination").'
+        ) ]
     description: __.typx.Annotated[
-        str, __.ddoc.Doc( 'Human-readable rule description.' ) ]
+        str,
+        __.ddoc.Doc( 'Human-readable rule description.' ) ]
     category: __.typx.Annotated[
-        str, __.ddoc.Doc( 'Rule category (readability, discoverability, robustness).' ) ]
+        str,
+        __.ddoc.Doc(
+            'Rule category (readability, discoverability, robustness).'
+        ) ]
     subcategory: __.typx.Annotated[
-        str, __.ddoc.Doc( 'Rule subcategory (compactness, nomenclature, navigation, etc.).' ) ]
+        str,
+        __.ddoc.Doc(
+            'Rule subcategory (compactness, nomenclature, navigation).'
+        ) ]
     rule_class: __.typx.Annotated[
-        type, __.ddoc.Doc( 'Rule class for instantiation.' ) ]
+        type,
+        __.ddoc.Doc( 'Rule class for instantiation.' ) ]
 
 
 # Type aliases for registry
-RuleRegistry: __.typx.TypeAlias = __.immut.Dictionary[ str, RuleDescriptor ]
+RuleRegistry: __.typx.TypeAlias = (
+    __.immut.Dictionary[ str, RuleDescriptor ] )
 RuleClassFactory: __.typx.TypeAlias = __.cabc.Callable[
     [ str, __.libcst.metadata.MetadataWrapper, tuple[ str, ... ] ],
-    'BaseRule'  # Forward reference since we're in registry.py
+    BaseRule
 ]
 
 
 class RuleRegistryManager:
-    ''' Manages bidirectional mapping between VBL codes and rule implementations. '''
+    ''' Manages bidirectional mapping between VBL codes and rules. '''
 
     def __init__(
         self,
@@ -79,12 +83,12 @@ class RuleRegistryManager:
     def resolve_rule_identifier(
         self,
         identifier: __.typx.Annotated[
-            str, __.ddoc.Doc( 'VBL code or descriptive name to resolve.' ) ]
+            str,
+            __.ddoc.Doc( 'VBL code or descriptive name to resolve.' ) ]
     ) -> __.typx.Annotated[
         str,
-        __.ddoc.Doc( 'Canonical VBL code for identifier.' ),
-        __.ddoc.Raises( 'RuleRegistryInvalidity', 'If identifier is not registered.' ) ]:
-        ''' Resolves either VBL code or descriptive name to canonical VBL code. '''
+        __.ddoc.Doc( 'Canonical VBL code for identifier.' ) ]:
+        ''' Resolves VBL code or descriptive name to VBL code. '''
         from ..exceptions import RuleRegistryInvalidity
 
         # Try as VBL code first
@@ -95,33 +99,31 @@ class RuleRegistryManager:
         if identifier in self._name_to_code:
             return self._name_to_code[ identifier ]
 
-        raise RuleRegistryInvalidity(
-            f'Unknown rule identifier: {identifier!r}. '
-            f'Must be a valid VBL code or descriptive name.' )
+        raise RuleRegistryInvalidity( identifier )
 
     def produce_rule_instance(
         self,
         vbl_code: __.typx.Annotated[
-            str, __.ddoc.Doc( 'VBL code for rule.' ) ],
+            str,
+            __.ddoc.Doc( 'VBL code for rule.' ) ],
         filename: __.typx.Annotated[
-            str, __.ddoc.Doc( 'Path to source file being analyzed.' ) ],
+            str,
+            __.ddoc.Doc( 'Path to source file being analyzed.' ) ],
         wrapper: __.typx.Annotated[
             __.libcst.metadata.MetadataWrapper,
             __.ddoc.Doc( 'LibCST metadata wrapper.' ) ],
         source_lines: __.typx.Annotated[
-            tuple[ str, ... ], __.ddoc.Doc( 'Source file lines.' ) ],
+            tuple[ str, ... ],
+            __.ddoc.Doc( 'Source file lines.' ) ],
         **parameters: __.typx.Any
     ) -> __.typx.Annotated[
-        'BaseRule',  # Forward reference
-        __.ddoc.Doc( 'Instantiated rule ready for analysis.' ),
-        __.ddoc.Raises( 'RuleRegistryInvalidity', 'If VBL code is not registered.' ) ]:
+        BaseRule,
+        __.ddoc.Doc( 'Instantiated rule ready for analysis.' ) ]:
         ''' Creates a rule instance from its VBL code. '''
         from ..exceptions import RuleRegistryInvalidity
 
         if vbl_code not in self.registry:
-            raise RuleRegistryInvalidity(
-                f'Unknown VBL code: {vbl_code!r}. '
-                f'Rule must be registered before instantiation.' )
+            raise RuleRegistryInvalidity( vbl_code )
 
         descriptor = self.registry[ vbl_code ]
         rule_class = descriptor.rule_class
@@ -137,7 +139,7 @@ class RuleRegistryManager:
         )
 
     def survey_available_rules( self ) -> tuple[ RuleDescriptor, ... ]:
-        ''' Returns all registered rule descriptors sorted by VBL code. '''
+        ''' Returns all registered rule descriptors. '''
         return tuple(
             descriptor
             for _, descriptor in sorted( self.registry.items( ) )
@@ -146,9 +148,10 @@ class RuleRegistryManager:
     def filter_rules_by_category(
         self,
         category: __.typx.Annotated[
-            str, __.ddoc.Doc( 'Category to filter by.' ) ]
+            str,
+            __.ddoc.Doc( 'Category to filter by.' ) ]
     ) -> tuple[ RuleDescriptor, ... ]:
-        ''' Returns rule descriptors matching specified category. '''
+        ''' Returns rule descriptors matching category. '''
         return tuple(
             descriptor
             for descriptor in self.survey_available_rules( )
@@ -158,9 +161,10 @@ class RuleRegistryManager:
     def filter_rules_by_subcategory(
         self,
         subcategory: __.typx.Annotated[
-            str, __.ddoc.Doc( 'Subcategory to filter by.' ) ]
+            str,
+            __.ddoc.Doc( 'Subcategory to filter by.' ) ]
     ) -> tuple[ RuleDescriptor, ... ]:
-        ''' Returns rule descriptors matching specified subcategory. '''
+        ''' Returns rule descriptors matching subcategory. '''
         return tuple(
             descriptor
             for descriptor in self.survey_available_rules( )

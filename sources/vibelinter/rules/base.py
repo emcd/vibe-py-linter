@@ -1,7 +1,4 @@
-# type: ignore
 # vim: set filetype=python fileencoding=utf-8:
-# ruff: noqa: E501, TRY003
-
 # -*- coding: utf-8 -*-
 
 #============================================================================#
@@ -21,9 +18,8 @@
 #============================================================================#
 
 
-''' Base rule framework implementing collection-then-analysis pattern. '''
+''' Base rule framework with collection-then-analysis pattern. '''
 
-# pyright: reportIncompatibleMethodOverride=false
 
 import abc
 
@@ -31,14 +27,15 @@ from . import __
 
 
 class BaseRule( __.libcst.CSTVisitor ):
-    ''' Abstract base class for linting rules implementing collection-then-analysis pattern.
+    ''' Abstract base class for linting rules.
 
-        Rules collect data during CST traversal and perform analysis in leave_Module to
-        generate violations. This pattern supports complex rules requiring complete
-        information before analysis can occur.
+        Implements collection-then-analysis pattern where rules collect data
+        during CST traversal and perform analysis in leave_Module to generate
+        violations. Supports complex rules requiring complete file information.
 
-        Note: Cannot inherit from abc.ABC due to metaclass conflict with CSTVisitor.
-        However, @abc.abstractmethod decorators still enforce abstract method requirements.
+        Note: Cannot inherit from abc.ABC due to metaclass conflict with
+        CSTVisitor. However, @abc.abstractmethod decorators still enforce
+        abstract method requirements.
     '''
 
     METADATA_DEPENDENCIES = (
@@ -50,12 +47,16 @@ class BaseRule( __.libcst.CSTVisitor ):
     def __init__(
         self,
         filename: __.typx.Annotated[
-            str, __.ddoc.Doc( 'Path to source file being analyzed.' ) ],
+            str,
+            __.ddoc.Doc( 'Path to source file being analyzed.' ) ],
         wrapper: __.typx.Annotated[
             __.libcst.metadata.MetadataWrapper,
-            __.ddoc.Doc( 'LibCST metadata wrapper providing position and scope information.' ) ],
+            __.ddoc.Doc(
+                'LibCST metadata wrapper providing position and scope.'
+            ) ],
         source_lines: __.typx.Annotated[
-            tuple[ str, ... ], __.ddoc.Doc( 'Source file lines for context extraction.' ) ],
+            tuple[ str, ... ],
+            __.ddoc.Doc( 'Source file lines for context extraction.' ) ],
     ) -> None:
         super( ).__init__( )
         self.filename = filename
@@ -66,7 +67,8 @@ class BaseRule( __.libcst.CSTVisitor ):
     @property
     @abc.abstractmethod
     def rule_id( self ) -> __.typx.Annotated[
-        str, __.ddoc.Doc( 'Unique identifier for rule (VBL code).' ) ]:
+        str,
+        __.ddoc.Doc( 'Unique identifier for rule (VBL code).' ) ]:
         ''' Returns the VBL code for this rule. '''
 
     @property
@@ -75,33 +77,38 @@ class BaseRule( __.libcst.CSTVisitor ):
         return tuple( self._violations )
 
     def leave_Module(
-        self, node: __.libcst.Module
-    ) -> __.typx.Optional[ __.libcst.Module ]:
-        ''' Performs collection analysis after CST traversal completes.
+        self, original_node: __.libcst.Module
+    ) -> None:
+        ''' Performs analysis after CST traversal completes.
 
-            Subclasses must override _analyze_collections to implement rule-specific
-            analysis logic using collected data.
+            Subclasses must override _analyze_collections to implement
+            rule-specific analysis logic using collected data.
         '''
+        _ = original_node  # Required by LibCST interface
         self._analyze_collections( )
-        return node
 
     @abc.abstractmethod
     def _analyze_collections( self ) -> None:
         ''' Analyzes collected data and generates violations.
 
-            Called by leave_Module after traversal completes. Implementations
-            should examine collected data and call _produce_violation for
-            any violations discovered.
+            Called by leave_Module after traversal completes.
+            Implementations should examine collected data and call
+            _produce_violation for any violations discovered.
         '''
 
     def _produce_violation(
         self,
         node: __.typx.Annotated[
-            __.libcst.CSTNode, __.ddoc.Doc( 'CST node where violation occurred.' ) ],
+            __.libcst.CSTNode,
+            __.ddoc.Doc( 'CST node where violation occurred.' ) ],
         message: __.typx.Annotated[
-            str, __.ddoc.Doc( 'Human-readable violation description.' ) ],
+            str,
+            __.ddoc.Doc( 'Human-readable violation description.' ) ],
         severity: __.typx.Annotated[
-            str, __.ddoc.Doc( "Severity level: 'error', 'warning', or 'info'." ) ] = 'error',
+            str,
+            __.ddoc.Doc(
+                "Severity level: 'error', 'warning', or 'info'."
+            ) ] = 'error',
     ) -> None:
         ''' Creates violation from CST node with precise positioning. '''
         line, column = self._position_from_node( node )
@@ -117,11 +124,16 @@ class BaseRule( __.libcst.CSTVisitor ):
 
     def _extract_context(
         self,
-        line: __.typx.Annotated[ int, __.ddoc.Doc( 'One-indexed line number.' ) ],
+        line: __.typx.Annotated[
+            int,
+            __.ddoc.Doc( 'One-indexed line number.' ) ],
         context_size: __.typx.Annotated[
-            int, __.ddoc.Doc( 'Number of lines to show before and after violation.' ) ] = 2,
+            int,
+            __.ddoc.Doc(
+                'Number of lines to show before and after violation.'
+            ) ] = 2,
     ) -> __.violations.ViolationContext:
-        ''' Extracts source code context around violation for enhanced reporting. '''
+        ''' Extracts source code context around violation. '''
         # Calculate context range
         start_line = max( 1, line - context_size )
         end_line = min( len( self.source_lines ), line + context_size )
@@ -142,18 +154,18 @@ class BaseRule( __.libcst.CSTVisitor ):
                 context_start_line = start_line,
             )
         # Should not happen in normal usage, but handle gracefully
-        raise __.immut.exceptions.Omnierror(
-            'Cannot extract context without a violation' )
+        raise __.immut.exceptions.Omnierror( )
 
     def _position_from_node(
         self, node: __.libcst.CSTNode
     ) -> tuple[ int, int ]:
-        ''' Extracts (line, column) position from CST node using metadata.
+        ''' Extracts (line, column) position from CST node.
 
             Returns one-indexed line and column numbers for consistency.
         '''
         try:
-            position = self.wrapper.resolve( __.libcst.metadata.PositionProvider )[ node ]
+            position = self.wrapper.resolve(
+                __.libcst.metadata.PositionProvider )[ node ]
             # LibCST provides 1-indexed lines, 0-indexed columns
             # We want 1-indexed for both
             return ( position.start.line, position.start.column + 1 )

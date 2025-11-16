@@ -68,6 +68,10 @@ _ = RuleDescriptor.description
 _ = RuleRegistry
 _ = RuleClassFactory
 
+from vibelinter.rules.violations import ViolationContextSequence
+
+_ = ViolationContextSequence
+
 # Exception classes
 _ = RuleConfigureFailure
 

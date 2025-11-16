@@ -1,4 +1,3 @@
-# type: ignore
 # vim: set filetype=python fileencoding=utf-8:
 # -*- coding: utf-8 -*-
 

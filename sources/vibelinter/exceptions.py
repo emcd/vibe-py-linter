@@ -36,14 +36,29 @@ class Omnierror( Omniexception, Exception ):
 class RuleExecuteFailure( Omnierror ):
     ''' Raised when rule execution encounters unrecoverable error. '''
 
+    def __init__( self, context: str ) -> None:
+        super( ).__init__(
+            f'Rule execution failed for {context!r}' )
+        self.context = context
+
 
 class MetadataProvideFailure( Omnierror ):
     ''' Raised when LibCST metadata provider initialization fails. '''
+
+    def __init__( self, filename: str ) -> None:
+        super( ).__init__(
+            f'Failed to initialize LibCST metadata for {filename!r}' )
+        self.filename = filename
 
 
 # Configuration exceptions
 class RuleRegistryInvalidity( Omnierror ):
     ''' Raised when rule registry contains invalid mappings. '''
+
+    def __init__( self, identifier: str ) -> None:
+        super( ).__init__(
+            f'Unknown or invalid rule identifier: {identifier!r}' )
+        self.identifier = identifier
 
 
 class RuleConfigureFailure( Omnierror ):
