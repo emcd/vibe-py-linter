@@ -27,7 +27,7 @@ Implement the fundamental data structures:
 
 **Key Design Decisions:**
 - Use `__.immut.DataclassObject` for immutability
-- One-indexed line numbers, zero-indexed column positions
+- **One-indexed for both line and column positions** (for consistency)
 - Support severity levels (error, warning, info)
 
 ### Phase 2: Exception Hierarchy
@@ -47,7 +47,7 @@ Follow the Omniexception → Omnierror pattern established in the project.
 **Module:** `sources/vibelinter/rules/base.py`
 
 Implement the abstract base class:
-- Inherit from both `ABC` and `libcst.CSTVisitor`
+- Inherit from both `ABC` and `libcst.CSTVisitor` (verify metaclass compatibility between ABCMeta and CSTVisitor's metaclass)
 - Define `METADATA_DEPENDENCIES` (PositionProvider, ScopeProvider, QualifiedNameProvider)
 - Implement collection-then-analysis pattern via `leave_Module`
 - Provide helper methods:
@@ -75,7 +75,7 @@ Implement context extraction for enhanced error reporting:
 
 **Modules:**
 - `sources/vibelinter/rules/registry.py` - Registry implementation
-- `sources/vibelinter/rules/__.py` - Rule-specific import hub
+- `sources/vibelinter/rules/__.py` - Rule-specific import hub (should include `from ..__ import *` to avoid import spaghetti)
 
 Implement rule discovery and instantiation:
 - `RuleDescriptor` dataclass with VBL code, descriptive name, category, subcategory
@@ -176,56 +176,37 @@ sources/vibelinter/
 7. **Engine Orchestration** - Wire everything together
 8. **Integration Testing** - End-to-end validation
 
-## Key Questions & Design Clarifications Needed
+## Key Questions & Design Clarifications - RESOLVED
 
 ### 1. Rule Parameter Configuration
 
 **Question:** How should rules receive their configuration parameters?
 
-**Options:**
-- A) Pass parameters to `__init__` via registry factory
-- B) Call a `configure(params)` method after instantiation
-- C) Access parameters from a shared configuration object
-
-**Recommendation:** Option A - pass via `__init__`. The registry factory can handle rule-specific parameter injection, keeping rules decoupled from configuration management.
+**Resolution:** ✅ **Option A - Pass parameters to `__init__` via registry factory**. The registry factory can handle rule-specific parameter injection, keeping rules decoupled from configuration management. If parameter count grows, introduce a DTO pattern.
 
 ### 2. Metadata Provider Error Handling
 
 **Question:** What should happen if LibCST metadata providers fail to initialize?
 
-**Current Plan:** Raise `MetadataProvideFailure` and fail the analysis. This ensures rules can rely on metadata being available.
-
-**Alternative:** Gracefully degrade - run rules without metadata but with reduced capabilities?
-
-**Recommendation:** Stick with fail-fast approach. All rules depend on PositionProvider for accurate violation reporting.
+**Resolution:** ✅ **Fail-fast approach**. Raise `MetadataProvideFailure` and fail the analysis. This ensures rules can rely on metadata being available. All rules depend on PositionProvider for accurate violation reporting, so graceful degradation is not viable.
 
 ### 3. Rule Discovery Mechanism
 
 **Question:** Should rules be auto-discovered (via imports/plugins) or explicitly registered?
 
-**Current Plan:** Explicit registration in registry for Phase 1 simplicity.
-
-**Future Enhancement:** Add auto-discovery via entry points or directory scanning in later phase.
+**Resolution:** ✅ **Explicit registration for Phase 1**. Use simple, explicit rule registration in the registry for initial implementation. Auto-discovery via entry points or directory scanning can be added in a later phase if needed.
 
 ### 4. Violation Deduplication
 
 **Question:** How should we handle multiple rules reporting the same violation?
 
-**Current Plan:** Each rule reports independently - deduplication handled at reporting layer if needed.
-
-**Consideration:** Should engine deduplicate by (filename, line, column) or keep all violations?
-
-**Recommendation:** Keep all violations initially. Rules should be specific enough to avoid duplicates. Add deduplication later if it becomes an issue.
+**Resolution:** ✅ **Keep all violations initially**. Each rule reports independently without deduplication. Rules should be specific enough to avoid duplicates. Add deduplication at the reporting layer later if it becomes an issue.
 
 ### 5. Performance Monitoring
 
 **Question:** Should we track per-rule timing in addition to overall analysis duration?
 
-**Current Plan:** Report overall `analysis_duration_ms` in Report.
-
-**Enhancement:** Add `rule_timings: dict[str, float]` to Report for performance debugging?
-
-**Recommendation:** Start simple with overall timing. Add per-rule timing if performance issues arise.
+**Resolution:** ✅ **Overall timing only**. Report overall `analysis_duration_ms` in Report. Do not add per-rule timing initially. Add it later only if performance issues arise and debugging requires it.
 
 ## Dependencies
 
