@@ -38,6 +38,9 @@ import frigid as            immut
 import tyro
 # --- END: Injected by Copier ---
 
+import libcst
+import libcst.metadata
+
 # --- BEGIN: Injected by Copier ---
 from absence import Absential, absent, is_absent
 # --- END: Injected by Copier ---

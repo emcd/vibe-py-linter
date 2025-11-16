@@ -1,3 +1,4 @@
+# type: ignore
 # vim: set filetype=python fileencoding=utf-8:
 # -*- coding: utf-8 -*-
 
@@ -18,33 +19,12 @@
 #============================================================================#
 
 
-''' Family of exceptions for package API. '''
+# ruff: noqa
+
+''' Common imports for rules subsystem. '''
+
+# ruff: noqa: F401
 
 
-from . import __
-
-
-class Omniexception( __.immut.exceptions.Omniexception ):
-    ''' Base for all exceptions raised by package API. '''
-
-
-class Omnierror( Omniexception, Exception ):
-    ''' Base for error exceptions raised by package API. '''
-
-
-# Rule execution exceptions
-class RuleExecuteFailure( Omnierror ):
-    ''' Raised when rule execution encounters unrecoverable error. '''
-
-
-class MetadataProvideFailure( Omnierror ):
-    ''' Raised when LibCST metadata provider initialization fails. '''
-
-
-# Configuration exceptions
-class RuleRegistryInvalidity( Omnierror ):
-    ''' Raised when rule registry contains invalid mappings. '''
-
-
-class RuleConfigureFailure( Omnierror ):
-    ''' Raised when rule configuration parameters are invalid. '''
+from ..__ import *
+from . import violations
