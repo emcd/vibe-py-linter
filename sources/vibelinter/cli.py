@@ -471,6 +471,7 @@ class Cli( __.immut.DataclassObject ):
     async def __call__( self ) -> None:
         ''' Invokes selected subcommand after system preparation. '''
         # TODO: Implement verbose logging setup
+        _ = self.verbose  # Suppress vulture warning
         exit_code = await self.command( )
         raise SystemExit( exit_code )
 

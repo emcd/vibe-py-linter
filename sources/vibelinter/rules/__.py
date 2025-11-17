@@ -18,32 +18,10 @@
 #============================================================================#
 
 
-''' Common imports used throughout the package. '''
 
-# ruff: noqa: F401
+''' Common imports for rules subsystem. '''
 
 
-import abc
-import collections.abc as   cabc
-import contextlib as        ctxl
-import dataclasses as       dcls
-import enum
-import os
-import pathlib
-import sys
-import time
-import types
 
-import libcst
-import libcst.metadata
-
-import typing_extensions as typx
-# --- BEGIN: Injected by Copier ---
-import dynadoc as           ddoc
-import frigid as            immut
-import tyro
-# --- END: Injected by Copier ---
-
-# --- BEGIN: Injected by Copier ---
-from absence import Absential, absent, is_absent
-# --- END: Injected by Copier ---
+from ..__ import *  # noqa: F403
+from . import violations  # noqa: F401
