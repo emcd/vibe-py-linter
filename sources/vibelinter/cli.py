@@ -72,13 +72,22 @@ PathsArgument: __.typx.TypeAlias = __.typx.Annotated[
 ]
 
 
+@__.typx.runtime_checkable
 class RenderableResult( __.typx.Protocol ):
-    ''' Protocol for command results with format-specific rendering. '''
+    ''' Protocol for command results with format-specific rendering.
 
+        This protocol uses structural subtyping - any class implementing
+        render_as_json and render_as_text methods satisfies this protocol.
+        Result classes should NOT inherit from this protocol; they satisfy
+        it through their method implementations.
+    '''
+
+    @__.abc.abstractmethod
     def render_as_json( self ) -> dict[ str, __.typx.Any ]:
         ''' Renders result as JSON-compatible dictionary. '''
         ...
 
+    @__.abc.abstractmethod
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders result as text lines. '''
         ...
@@ -245,14 +254,15 @@ class CheckCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the check command. '''
-        result = CheckResult(
-            paths = self.paths,
-            context_lines = self.display.context,
-            jobs = self.jobs,
-            rule_selection = self.select,
-        )
-        async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+        async with intercept_errors( self.display ):
+            result = CheckResult(
+                paths = self.paths,
+                context_lines = self.display.context,
+                jobs = self.jobs,
+                rule_selection = self.select,
+            )
+            async with __.ctxl.AsyncExitStack( ) as exits:
+                await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -283,15 +293,16 @@ class FixCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the fix command. '''
-        result = FixResult(
-            paths = self.paths,
-            simulate = self.simulate,
-            diff_format = self.diff_format.value,
-            apply_dangerous = self.apply_dangerous,
-            rule_selection = self.select,
-        )
-        async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+        async with intercept_errors( self.display ):
+            result = FixResult(
+                paths = self.paths,
+                simulate = self.simulate,
+                diff_format = self.diff_format.value,
+                apply_dangerous = self.apply_dangerous,
+                rule_selection = self.select,
+            )
+            async with __.ctxl.AsyncExitStack( ) as exits:
+                await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -321,13 +332,14 @@ class ConfigureCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the configure command. '''
-        result = ConfigureResult(
-            validate = self.validate,
-            interactive = self.interactive,
-            display_effective = self.display_effective,
-        )
-        async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+        async with intercept_errors( self.display ):
+            result = ConfigureResult(
+                validate = self.validate,
+                interactive = self.interactive,
+                display_effective = self.display_effective,
+            )
+            async with __.ctxl.AsyncExitStack( ) as exits:
+                await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -348,9 +360,10 @@ class DescribeRulesCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the describe rules command. '''
-        result = DescribeRulesResult( details = self.details )
-        async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+        async with intercept_errors( self.display ):
+            result = DescribeRulesResult( details = self.details )
+            async with __.ctxl.AsyncExitStack( ) as exits:
+                await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -372,12 +385,13 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the describe rule command. '''
-        result = DescribeRuleResult(
-            rule_id = self.rule_id,
-            details = self.details,
-        )
-        async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+        async with intercept_errors( self.display ):
+            result = DescribeRuleResult(
+                rule_id = self.rule_id,
+                details = self.details,
+            )
+            async with __.ctxl.AsyncExitStack( ) as exits:
+                await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -415,9 +429,10 @@ class ServeCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the serve command. '''
-        result = ServeResult( protocol = self.protocol )
-        async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+        async with intercept_errors( self.display ):
+            result = ServeResult( protocol = self.protocol )
+            async with __.ctxl.AsyncExitStack( ) as exits:
+                await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -472,6 +487,51 @@ def execute( ) -> None:
     except BaseException:
         # TODO: Log exception with proper error handling
         raise SystemExit( 1 ) from None
+
+
+@__.ctxl.asynccontextmanager
+async def intercept_errors(
+    display: DisplayOptions,
+) -> __.cabc.AsyncIterator[ None ]:
+    ''' Context manager that intercepts and renders exceptions.
+
+        Catches Omnierror exceptions and renders them according to the
+        display format. Handles unexpected exceptions by logging and
+        formatting as errors.
+    '''
+    from . import exceptions as _exceptions
+
+    try:
+        yield
+    except _exceptions.Omnierror as exc:
+        async with __.ctxl.AsyncExitStack( ) as exits:
+            stream = await display.provide_stream( exits )
+            match display.format:
+                case OutputFormats.Json:
+                    stream.write(
+                        __.json.dumps( exc.render_as_json( ), indent = 2 ) )
+                    stream.write( '\n' )
+                case OutputFormats.Text:
+                    for line in exc.render_as_text( ):
+                        stream.write( line )
+                        stream.write( '\n' )
+        raise SystemExit( 1 ) from exc
+    except BaseException as exc:
+        # TODO: Log exception with proper error handling via scribe
+        async with __.ctxl.AsyncExitStack( ) as exits:
+            stream = await display.provide_stream( exits )
+            match display.format:
+                case OutputFormats.Json:
+                    error_data = {
+                        'type': 'unexpected_error',
+                        'message': str( exc ),
+                    }
+                    stream.write( __.json.dumps( error_data, indent = 2 ) )
+                    stream.write( '\n' )
+                case OutputFormats.Text:
+                    stream.write( '## Unexpected Error\n' )
+                    stream.write( f'**Message**: {exc}\n' )
+        raise SystemExit( 1 ) from exc
 
 
 async def _render_and_print_result(
