@@ -72,14 +72,12 @@ PathsArgument: __.typx.TypeAlias = __.typx.Annotated[
 ]
 
 
-@__.typx.runtime_checkable
-class RenderableResult( __.typx.Protocol ):
+class RenderableResult( __.immut.DataclassProtocol, __.typx.Protocol ):
     ''' Protocol for command results with format-specific rendering.
 
-        This protocol uses structural subtyping - any class implementing
-        render_as_json and render_as_text methods satisfies this protocol.
-        Result classes should NOT inherit from this protocol; they satisfy
-        it through their method implementations.
+        Combines DataclassProtocol and Protocol to provide both structural
+        typing and dataclass compatibility. Result classes should explicitly
+        inherit from this base class.
     '''
 
     @__.abc.abstractmethod
@@ -93,7 +91,7 @@ class RenderableResult( __.typx.Protocol ):
         ...
 
 
-class CheckResult( __.immut.DataclassObject ):
+class CheckResult( RenderableResult ):
     ''' Result from check command execution. '''
 
     paths: tuple[ str, ... ]
@@ -122,7 +120,7 @@ class CheckResult( __.immut.DataclassObject ):
         return tuple( lines )
 
 
-class FixResult( __.immut.DataclassObject ):
+class FixResult( RenderableResult ):
     ''' Result from fix command execution. '''
 
     paths: tuple[ str, ... ]
@@ -154,7 +152,7 @@ class FixResult( __.immut.DataclassObject ):
         return tuple( lines )
 
 
-class ConfigureResult( __.immut.DataclassObject ):
+class ConfigureResult( RenderableResult ):
     ''' Result from configure command execution. '''
 
     validate: bool
@@ -179,7 +177,7 @@ class ConfigureResult( __.immut.DataclassObject ):
         )
 
 
-class DescribeRulesResult( __.immut.DataclassObject ):
+class DescribeRulesResult( RenderableResult ):
     ''' Result from describe rules command execution. '''
 
     details: bool
@@ -196,7 +194,7 @@ class DescribeRulesResult( __.immut.DataclassObject ):
         )
 
 
-class DescribeRuleResult( __.immut.DataclassObject ):
+class DescribeRuleResult( RenderableResult ):
     ''' Result from describe rule command execution. '''
 
     rule_id: str
@@ -217,7 +215,7 @@ class DescribeRuleResult( __.immut.DataclassObject ):
         )
 
 
-class ServeResult( __.immut.DataclassObject ):
+class ServeResult( RenderableResult ):
     ''' Result from serve command execution. '''
 
     protocol: str

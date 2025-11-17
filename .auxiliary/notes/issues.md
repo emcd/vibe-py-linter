@@ -61,29 +61,66 @@ dataclass `__init__` signatures.
 - Determine if there's a missing import, decorator, or configuration
 - Consider whether the issue relates to how the result classes are defined
 
-### Potential Solution (Not Attempted)
+### Solution Found - DataclassProtocol Provides Dataclass Machinery
 
-According to maintainer feedback, the issue may have been resolved by making the
-result classes explicitly inherit from `RenderableResult` after it was defined
-with dual inheritance from `DataclassProtocol` and `Protocol`. The type checker
-errors may disappear when classes explicitly inherit rather than using structural
-typing alone.
+**Date**: 2025-11-17
+**Status**: RESOLVED
 
-Example that might work:
+**Failed Approach**:
+Initially attempted to inherit from both `DataclassObject` and `RenderableResult`:
 ```python
 class RenderableResult( __.immut.DataclassProtocol, __.typx.Protocol ):
-    # Protocol methods here
-    ...
+    @__.abc.abstractmethod
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ...
 
-class CheckResult( __.immut.DataclassObject, RenderableResult ):
-    # Explicit inheritance from both DataclassObject and the protocol
-    ...
+class CheckResult( __.immut.DataclassObject, RenderableResult ):  # WRONG!
+    paths: tuple[ str, ... ]
+    # ...
 ```
 
-This suggests that `DataclassProtocol` may work better as an ABC base class than
-as a pure structural protocol when used with dataclass implementations.
+This caused metaclass conflict: `Dataclass` vs `ProtocolDataclass`.
 
-### Workaround
+**Successful Approach**:
+The key insight is that `DataclassProtocol` itself provides the dataclass machinery,
+so result classes should ONLY inherit from `RenderableResult`:
+
+```python
+class RenderableResult( __.immut.DataclassProtocol, __.typx.Protocol ):
+    @__.abc.abstractmethod
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ...
+    @__.abc.abstractmethod
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ...
+
+class CheckResult( RenderableResult ):  # CORRECT!
+    paths: tuple[ str, ... ]
+    context_lines: int
+    jobs: __.typx.Union[ int, str ]
+    rule_selection: __.Absential[ str ] = __.absent
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        # Implementation
+        ...
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        # Implementation
+        ...
+```
+
+**Results**:
+- ✅ Pyright: 0 errors, 0 warnings
+- ✅ Ruff: All checks passed
+- ✅ Isort: Clean
+
+**Key Lessons**:
+1. `DataclassProtocol` provides complete dataclass functionality via its metaclass
+2. Cannot combine `DataclassObject` with `DataclassProtocol` - they have incompatible metaclasses
+3. Use either `DataclassObject` OR `DataclassProtocol`, not both
+4. When using `DataclassProtocol` + `Protocol`, subclasses inherit from the protocol directly
+
+### Previous Workaround (Now Obsolete)
 
 Currently using `__.typx.Protocol` alone with `@__.typx.runtime_checkable`, which
 provides structural subtyping without the dataclass-specific protocol features.
