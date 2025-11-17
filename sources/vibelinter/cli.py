@@ -95,16 +95,39 @@ class CheckResult( RenderableResult ):
     ''' Result from check command execution. '''
 
     paths: tuple[ str, ... ]
-    context_lines: int
-    jobs: __.typx.Union[ int, str ]
+    reports: tuple[ __.typx.Any, ... ]  # Engine Report objects
+    total_violations: int
+    total_files: int
     rule_selection: __.Absential[ str ] = __.absent
 
     def render_as_json( self ) -> dict[ str, __.typx.Any ]:
         ''' Renders result as JSON-compatible dictionary. '''
+        from . import engine as _engine
+        files_data: list[ dict[ str, __.typx.Any ] ] = [ ]
+        for report_obj in self.reports:
+            typed_report = __.typx.cast( _engine.Report, report_obj )
+            violations_data: list[ dict[ str, __.typx.Any ] ] = [
+                {
+                    'rule_id': v.rule_id,
+                    'filename': v.filename,
+                    'line': v.line,
+                    'column': v.column,
+                    'message': v.message,
+                    'severity': v.severity,
+                }
+                for v in typed_report.violations
+            ]
+            files_data.append( {
+                'filename': typed_report.filename,
+                'violations': violations_data,
+                'violation_count': len( typed_report.violations ),
+                'rule_count': typed_report.rule_count,
+                'analysis_duration_ms': typed_report.analysis_duration_ms,
+            } )
         result: dict[ str, __.typx.Any ] = {
-            'paths': list( self.paths ),
-            'context_lines': self.context_lines,
-            'jobs': self.jobs,
+            'files': files_data,
+            'total_violations': self.total_violations,
+            'total_files': self.total_files,
         }
         if not __.is_absent( self.rule_selection ):
             result[ 'rule_selection' ] = self.rule_selection
@@ -112,11 +135,22 @@ class CheckResult( RenderableResult ):
 
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders result as text lines. '''
-        lines = [ f'Checking paths: {self.paths}' ]
-        if not __.is_absent( self.rule_selection ):
-            lines.append( f'  Rule selection: {self.rule_selection}' )
-        lines.append( f'  Context lines: {self.context_lines}' )
-        lines.append( f'  Jobs: {self.jobs}' )
+        from . import engine as _engine
+        lines: list[ str ] = [ ]
+        for report_obj in self.reports:
+            typed_report = __.typx.cast( _engine.Report, report_obj )
+            if typed_report.violations:
+                lines.append( f'\n{typed_report.filename}:' )
+                lines.extend(
+                    f'  {violation.line}:{violation.column} '
+                    f'{violation.rule_id} {violation.message}'
+                    for violation in typed_report.violations )
+        if not lines:
+            lines.append( 'No violations found.' )
+        else:
+            lines.append(
+                f'\nFound {self.total_violations} violations '
+                f'in {self.total_files} files.' )
         return tuple( lines )
 
 
@@ -248,15 +282,40 @@ class CheckCommand( __.immut.DataclassObject ):
 
     async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the check command. '''
+        from . import engine as _engine
+        from .rules.implementations import registry as _rule_registry
+        file_paths = _discover_python_files( self.paths )
+        if not file_paths:
+            result = CheckResult(
+                paths = self.paths,
+                reports = ( ),
+                total_violations = 0,
+                total_files = 0,
+                rule_selection = self.select,
+            )
+            async with __.ctxl.AsyncExitStack( ) as exits:
+                await _render_and_print_result( result, display, exits )
+            return 0
+        enabled_rules = _parse_rule_selection( self.select )
+        configuration = _engine.EngineConfiguration(
+            enabled_rules = enabled_rules,
+            context_size = display.context,
+            include_context = display.context > 0,
+        )
+        registry_manager = _rule_registry.create_default_registry_manager( )
+        engine = _engine.Engine( registry_manager, configuration )
+        reports = engine.lint_files( file_paths )
+        total_violations = sum( len( r.violations ) for r in reports )
         result = CheckResult(
             paths = self.paths,
-            context_lines = display.context,
-            jobs = self.jobs,
+            reports = reports,
+            total_violations = total_violations,
+            total_files = len( reports ),
             rule_selection = self.select,
         )
         async with __.ctxl.AsyncExitStack( ) as exits:
             await _render_and_print_result( result, display, exits )
-        return 0
+        return 1 if total_violations > 0 else 0
 
 
 class FixCommand( __.immut.DataclassObject ):
@@ -489,6 +548,8 @@ async def intercept_errors(
                         stream.write( line )
                         stream.write( '\n' )
         raise SystemExit( 1 ) from exc
+    except ( SystemExit, KeyboardInterrupt ):
+        raise
     except BaseException as exc:
         # TODO: Log exception with proper error handling via scribe
         async with __.ctxl.AsyncExitStack( ) as exits:
@@ -505,6 +566,33 @@ async def intercept_errors(
                     stream.write( '## Unexpected Error\n' )
                     stream.write( f'**Message**: {exc}\n' )
         raise SystemExit( 1 ) from exc
+
+
+def _discover_python_files(
+    paths: __.cabc.Sequence[ str ]
+) -> tuple[ __.pathlib.Path, ... ]:
+    ''' Discovers Python files from file paths or directories. '''
+    python_files: list[ __.pathlib.Path ] = [ ]
+    for path_str in paths:
+        path = __.pathlib.Path( path_str )
+        if not path.exists( ):
+            continue
+        if path.is_file( ) and path.suffix == '.py':
+            python_files.append( path )
+        elif path.is_dir( ):
+            python_files.extend( path.rglob( '*.py' ) )
+    return tuple( sorted( set( python_files ) ) )
+
+
+def _parse_rule_selection(
+    selection: __.Absential[ str ]
+) -> frozenset[ str ]:
+    ''' Parses comma-separated rule codes or returns all rules. '''
+    from .rules.implementations import registry as _rule_registry
+    if __.is_absent( selection ):
+        registry_manager = _rule_registry.create_default_registry_manager( )
+        return frozenset( registry_manager.registry.keys( ) )
+    return frozenset( code.strip( ) for code in selection.split( ',' ) )
 
 
 async def _render_and_print_result(

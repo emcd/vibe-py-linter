@@ -44,7 +44,7 @@ Integration & Quality:
 - [x] All linting errors fixed (ruff, pyright, isort, vulture passing)
 - [x] Coding standards conformance (COMPLETE - all style rules followed)
 - [x] Python 3.13 compatibility verified
-- [ ] CLI integration (NOT STARTED - engine not wired to check command)
+- [x] CLI integration (COMPLETE - engine wired to check command)
 
 ## Quality Gates Checklist
 
@@ -64,6 +64,9 @@ Integration & Quality:
 - **2025-11-17**: Code style violations identified and fixed - Removed all blank lines from function bodies, fixed import patterns via __ hub, narrowed try blocks to only wrap raising statements
 - **2025-11-17**: Python 3.13 compatibility - Fixed dataclass default_factory for frigid.Dictionary types; created _create_empty_rule_parameters factory function with proper type signature
 - **2025-11-17**: VBL101 rule corrected - Changed from detecting "consecutive blank lines" to detecting ANY blank lines in function bodies per actual project standards; this is the primary use case for the linter
+- **2025-11-17**: CLI Integration Implementation - Created global rule registry, implemented file discovery with recursive directory traversal, wired CheckCommand to invoke Engine, implemented Report rendering for text/JSON formats, added proper exit codes (0 for clean, 1 for violations), fixed SystemExit handling in intercept_errors
+- **2025-11-17**: Registry centralization - Created sources/vibelinter/rules/implementations/registry.py with create_default_registry_manager() for centralized rule registration
+- **2025-11-17**: CheckResult refactoring - Changed from parameter display to actual linting results with Report objects, total violation counts, and proper rendering methods
 
 ## Handoff Notes
 
@@ -82,8 +85,15 @@ Integration & Quality:
 - Python 3.13 compatibility verified
 - All quality checks passing (linters, type checker, vulture, tests on all environments)
 
+**Implemented:**
+- CLI integration (wire engine to `check` command) - COMPLETE
+- File discovery from paths and directories
+- Rule selection parsing (all rules or comma-separated codes)
+- Engine instantiation and invocation
+- Report rendering in text and JSON formats
+- Proper exit codes (0 for no violations, 1 for violations found)
+
 **Not Started:**
-- CLI integration (wire engine to `check` command)
 - Configuration file support
 - Additional rules (VBL102, VBL201, VBL301, etc.)
 - Performance optimization
@@ -91,18 +101,10 @@ Integration & Quality:
 
 ### Next Steps
 
-1. **Immediate** (current session):
-   - Fix import organization in __/imports.py (libcst before typing_extensions)
-   - Remove all blank lines from function bodies per style.rst
-   - Fix import patterns throughout (use __ hub, private aliases for submodules)
-   - Narrow all try blocks to wrap only statements that raise
-   - Verify linters still pass after style fixes
-   - Commit conformance changes
-
-2. **Short-term** (next session):
-   - Wire CLI to engine (make `hatch run vibelint check` actually analyze files)
-   - Add configuration file support
-   - Implement 2-3 more rules to validate framework
+1. **Short-term** (next session):
+   - Add configuration file support (TOML parsing, pyproject.toml integration)
+   - Implement 2-3 more rules to validate framework (VBL102, VBL201, etc.)
+   - Add rule selection by category/subcategory
 
 3. **Medium-term**:
    - Performance profiling and optimization
@@ -111,9 +113,9 @@ Integration & Quality:
 
 ### Known Issues
 
-- **CLI Not Functional**: The `vibelint check` command currently only prints parameters, doesn't invoke the engine
 - **Limited Rule Coverage**: Only VBL101 implemented, need more rules to validate framework robustness
 - **No Configuration File**: Engine accepts configuration programmatically but no file-based config yet
+- **No Parallel Processing**: Jobs parameter accepted but not implemented (single-threaded only)
 
 ### Context Dependencies
 
