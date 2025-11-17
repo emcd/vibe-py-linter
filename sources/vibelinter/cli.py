@@ -35,7 +35,7 @@ class DiffFormats( __.enum.Enum ):
     Context = 'context'
 
 
-class OutputFormats( __.enum.Enum ):
+class DisplayFormats( __.enum.Enum ):
     ''' Output formats for reporting. '''
 
     Text = 'text'
@@ -49,10 +49,10 @@ class DisplayOptions( _appcore_cli.DisplayOptions ):
     '''
 
     format: __.typx.Annotated[
-        OutputFormats,
+        DisplayFormats,
         __.tyro.conf.arg( prefix_name = False ),
         __.ddoc.Doc( ''' Output format for reporting. ''' )
-    ] = OutputFormats.Text
+    ] = DisplayFormats.Text
     context: __.typx.Annotated[
         int,
         __.tyro.conf.arg( prefix_name = False ),
@@ -83,12 +83,12 @@ class RenderableResult( __.immut.DataclassProtocol, __.typx.Protocol ):
     @__.abc.abstractmethod
     def render_as_json( self ) -> dict[ str, __.typx.Any ]:
         ''' Renders result as JSON-compatible dictionary. '''
-        ...
+        raise NotImplementedError
 
     @__.abc.abstractmethod
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders result as text lines. '''
-        ...
+        raise NotImplementedError
 
 
 class CheckResult( RenderableResult ):
@@ -480,11 +480,11 @@ async def intercept_errors(
         async with __.ctxl.AsyncExitStack( ) as exits:
             stream = await display.provide_stream( exits )
             match display.format:
-                case OutputFormats.Json:
+                case DisplayFormats.Json:
                     stream.write(
                         __.json.dumps( exc.render_as_json( ), indent = 2 ) )
                     stream.write( '\n' )
-                case OutputFormats.Text:
+                case DisplayFormats.Text:
                     for line in exc.render_as_text( ):
                         stream.write( line )
                         stream.write( '\n' )
@@ -494,14 +494,14 @@ async def intercept_errors(
         async with __.ctxl.AsyncExitStack( ) as exits:
             stream = await display.provide_stream( exits )
             match display.format:
-                case OutputFormats.Json:
+                case DisplayFormats.Json:
                     error_data = {
                         'type': 'unexpected_error',
                         'message': str( exc ),
                     }
                     stream.write( __.json.dumps( error_data, indent = 2 ) )
                     stream.write( '\n' )
-                case OutputFormats.Text:
+                case DisplayFormats.Text:
                     stream.write( '## Unexpected Error\n' )
                     stream.write( f'**Message**: {exc}\n' )
         raise SystemExit( 1 ) from exc
@@ -515,10 +515,10 @@ async def _render_and_print_result(
     ''' Renders and prints a result object based on display options. '''
     stream = await display.provide_stream( exits )
     match display.format:
-        case OutputFormats.Json:
+        case DisplayFormats.Json:
             stream.write( __.json.dumps( result.render_as_json( ) ) )
             stream.write( '\n' )
-        case OutputFormats.Text:
+        case DisplayFormats.Text:
             for line in result.render_as_text( ):
                 stream.write( line )
                 stream.write( '\n' )
