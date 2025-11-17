@@ -374,3 +374,11 @@ exclude = [
 ]
 ignore_decorators = [ '@__.abc.abstractmethod', '@__.typx.overload' ]
 ignore_names = [ 'main' ]
+
+[tool.vibelinter]
+select = ["VBL101"]
+context = 3
+exclude_paths = ["tests/**", ".venv/**"]
+
+[tool.vibelinter.rules.VBL101]
+# Future: rule-specific configuration
