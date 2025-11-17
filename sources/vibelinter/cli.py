@@ -60,7 +60,6 @@ class DisplayOptions( _appcore_cli.DisplayOptions ):
     ] = 0
 
 
-# Type aliases for CLI parameters
 RuleSelectorArgument: __.typx.TypeAlias = __.typx.Annotated[
     str,
     __.tyro.conf.arg( prefix_name = False ),
@@ -71,9 +70,6 @@ PathsArgument: __.typx.TypeAlias = __.typx.Annotated[
     __.tyro.conf.arg( prefix_name = False ),
     __.ddoc.Doc( ''' Files or directories to analyze. ''' )
 ]
-
-
-# Result classes for self-rendering output
 
 
 class CheckResult( __.immut.DataclassObject ):
@@ -218,30 +214,6 @@ class ServeResult( __.immut.DataclassObject ):
             f'Protocol server: {self.protocol}',
             '  (Not yet implemented)',
         )
-
-
-async def _render_and_print_result(
-    result: __.typx.Union[
-        CheckResult, FixResult, ConfigureResult,
-        DescribeRulesResult, DescribeRuleResult, ServeResult
-    ],
-    display: DisplayOptions,
-    exits: __.ctxl.AsyncExitStack,
-) -> None:
-    ''' Renders and prints a result object based on display options.
-
-        Follows the pattern from librovore for centralized rendering dispatch.
-    '''
-    stream = await display.provide_stream( exits )
-    match display.format:
-        case OutputFormats.Json:
-            import json
-            stream.write( json.dumps( result.render_as_json( ) ) )
-            stream.write( '\n' )
-        case OutputFormats.Text:
-            for line in result.render_as_text( ):
-                stream.write( line )
-                stream.write( '\n' )
 
 
 class CheckCommand( __.immut.DataclassObject ):
@@ -483,10 +455,28 @@ def execute( ) -> None:
         __.tyro.conf.EnumChoicesFromValues,
         __.tyro.conf.HelptextFromCommentsOff,
     )
-    try:
-        run( __.tyro.cli( Cli, config = config )( ) ) # pyright: ignore
-    except SystemExit:
-        raise
+    try: run( __.tyro.cli( Cli, config = config )( ) ) # pyright: ignore
+    except SystemExit: raise
     except BaseException:
         # TODO: Log exception with proper error handling
         raise SystemExit( 1 ) from None
+
+
+async def _render_and_print_result(
+    result: __.typx.Union[
+        CheckResult, FixResult, ConfigureResult,
+        DescribeRulesResult, DescribeRuleResult, ServeResult
+    ],
+    display: DisplayOptions,
+    exits: __.ctxl.AsyncExitStack,
+) -> None:
+    ''' Renders and prints a result object based on display options. '''
+    stream = await display.provide_stream( exits )
+    match display.format:
+        case OutputFormats.Json:
+            stream.write( __.json.dumps( result.render_as_json( ) ) )
+            stream.write( '\n' )
+        case OutputFormats.Text:
+            for line in result.render_as_text( ):
+                stream.write( line )
+                stream.write( '\n' )
