@@ -26,7 +26,9 @@
 from appcore import cli as _appcore_cli
 
 from . import __
+from . import configuration as _configuration
 from . import engine as _engine
+from . import rules as _rules
 
 
 class DiffFormats( __.enum.Enum ):
@@ -270,8 +272,6 @@ class CheckCommand( __.immut.DataclassObject ):
 
     async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the check command. '''
-        from . import configuration as _configuration
-        from . import rules as _rules
         # TODO: Implement parallel processing with jobs parameter
         _ = self.jobs  # Suppress vulture warning
         config = _configuration.discover_configuration( )
@@ -589,7 +589,6 @@ def _apply_path_filters(
     config: __.typx.Any,
 ) -> tuple[ __.pathlib.Path, ... ]:
     ''' Applies include/exclude path filters from configuration. '''
-    from . import configuration as _configuration
     typed_config = __.typx.cast( _configuration.Configuration, config )
     filtered = list( file_paths )
     if not __.is_absent( typed_config.include_paths ):
@@ -625,7 +624,6 @@ def _merge_context_size(
     config: __.Absential[ __.typx.Any ],
 ) -> int:
     ''' Merges context size from CLI and configuration. '''
-    from . import configuration as _configuration
     if cli_context > 0:
         return cli_context
     if __.is_absent( config ):
@@ -641,7 +639,6 @@ def _merge_rule_selection(
     config: __.Absential[ __.typx.Any ],
 ) -> frozenset[ str ]:
     ''' Merges rule selection from CLI and configuration. '''
-    from . import configuration as _configuration
     from .rules.implementations.__ import RULE_DESCRIPTORS
     all_rules = frozenset( RULE_DESCRIPTORS.keys( ) )
     if not __.is_absent( cli_selection ):
@@ -657,16 +654,6 @@ def _merge_rule_selection(
     if not __.is_absent( typed_config.exclude_rules ):
         selected -= set( typed_config.exclude_rules )
     return frozenset( selected )
-
-
-def _parse_rule_selection(
-    selection: __.Absential[ str ]
-) -> frozenset[ str ]:
-    ''' Parses comma-separated rule codes or returns all rules. '''
-    from .rules.implementations.__ import RULE_DESCRIPTORS
-    if __.is_absent( selection ):
-        return frozenset( RULE_DESCRIPTORS.keys( ) )
-    return frozenset( code.strip( ) for code in selection.split( ',' ) )
 
 
 async def _render_and_print_result(

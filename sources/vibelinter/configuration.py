@@ -21,6 +21,8 @@
 ''' Configuration file discovery and parsing. '''
 
 
+from tomli import loads as _toml_loads
+
 from . import __
 from . import exceptions as _exceptions
 
@@ -97,7 +99,6 @@ def discover_configuration(
 
 def load_configuration( location: PathLike ) -> Configuration:
     ''' Loads configuration from specified pyproject.toml file. '''
-    from tomli import loads as _toml_loads
     file_path = __.pathlib.Path( location )
     try: content = file_path.read_text( encoding = 'utf-8' )
     except ( OSError, IOError ) as exception:
