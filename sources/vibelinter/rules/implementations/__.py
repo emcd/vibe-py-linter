@@ -18,26 +18,20 @@
 #============================================================================#
 
 
-''' Global rule registry initialization. '''
+''' Re-exports and global registry for rule implementations. '''
+
+# ruff: noqa: F403, F405
 
 
-from ..registry import RuleDescriptor as _RuleDescriptor
-from ..registry import RuleRegistryManager as _RuleRegistryManager
-from .vbl101 import VBL101 as _VBL101
+from ..__ import *
+from ..registry import *
 
 
-_DESCRIPTORS = {
-    'VBL101': _RuleDescriptor(
-        vbl_code = 'VBL101',
-        descriptive_name = 'blank-line-elimination',
-        description = 'Detects blank lines within function bodies.',
-        category = 'readability',
-        subcategory = 'compactness',
-        rule_class = _VBL101,
-    ),
-}
+# Global mutable registry for self-registering rules
+RULE_DESCRIPTORS: accret.Dictionary[ str, RuleDescriptor ] = (
+    accret.Dictionary( ) )
 
 
-def create_default_registry_manager( ) -> _RuleRegistryManager:
-    ''' Creates the default rule registry manager with all available rules. '''
-    return _RuleRegistryManager( _DESCRIPTORS )
+def create_registry_manager( ) -> RuleRegistryManager:
+    ''' Creates rule registry manager from self-registered rules. '''
+    return RuleRegistryManager( dict( RULE_DESCRIPTORS ) )

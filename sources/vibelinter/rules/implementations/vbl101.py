@@ -32,8 +32,8 @@
 '''
 
 
-from .. import __
 from ..base import BaseRule
+from . import __
 
 
 class VBL101( BaseRule ):
@@ -82,7 +82,8 @@ class VBL101( BaseRule ):
 
     def _report_blank_line( self, line_num: int ) -> None:
         ''' Reports a violation for a blank line in function body. '''
-        violation = __.violations.Violation(
+        from .. import violations as _violations
+        violation = _violations.Violation(
             rule_id = self.rule_id,
             filename = self.filename,
             line = line_num,
@@ -90,3 +91,14 @@ class VBL101( BaseRule ):
             message = "Blank line in function body.",
             severity = 'warning' )
         self._violations.append( violation )
+
+
+# Self-register this rule
+__.RULE_DESCRIPTORS[ 'VBL101' ] = __.RuleDescriptor(
+    vbl_code = 'VBL101',
+    descriptive_name = 'blank-line-elimination',
+    description = 'Detects blank lines within function bodies.',
+    category = 'readability',
+    subcategory = 'compactness',
+    rule_class = VBL101,
+)

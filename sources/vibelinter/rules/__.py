@@ -21,7 +21,7 @@
 
 ''' Common imports for rules subsystem. '''
 
+# ruff: noqa: F403
 
 
-from ..__ import *  # noqa: F403
-from . import violations  # noqa: F401
+from ..__ import *

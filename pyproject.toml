@@ -20,6 +20,7 @@ dependencies = [
   'typing-extensions',
   # --- BEGIN: Injected by Copier ---
   'absence~=1.1',
+  'accretive~=4.2',
   'dynadoc~=1.4',
   'frigid~=4.2',
   'emcd-appcore[cli]~=1.6',

@@ -26,6 +26,7 @@
 from appcore import cli as _appcore_cli
 
 from . import __
+from . import engine as _engine
 
 
 class DiffFormats( __.enum.Enum ):
@@ -65,10 +66,8 @@ RuleSelectorArgument: __.typx.TypeAlias = __.typx.Annotated[
     __.tyro.conf.arg( prefix_name = False ),
     __.ddoc.Doc( ''' Comma-separated VBL rule codes (e.g. VBL101,VBL201). ''' )
 ]
-PathsArgument: __.typx.TypeAlias = __.typx.Annotated[
-    tuple[ str, ... ],
-    __.tyro.conf.arg( prefix_name = False ),
-    __.ddoc.Doc( ''' Files or directories to analyze. ''' )
+PathsArgument: __.typx.TypeAlias = __.tyro.conf.Positional[
+    tuple[ str, ... ]
 ]
 
 
@@ -102,7 +101,6 @@ class CheckResult( RenderableResult ):
 
     def render_as_json( self ) -> dict[ str, __.typx.Any ]:
         ''' Renders result as JSON-compatible dictionary. '''
-        from . import engine as _engine
         files_data: list[ dict[ str, __.typx.Any ] ] = [ ]
         for report_obj in self.reports:
             typed_report = __.typx.cast( _engine.Report, report_obj )
@@ -135,7 +133,6 @@ class CheckResult( RenderableResult ):
 
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders result as text lines. '''
-        from . import engine as _engine
         lines: list[ str ] = [ ]
         for report_obj in self.reports:
             typed_report = __.typx.cast( _engine.Report, report_obj )
@@ -282,8 +279,9 @@ class CheckCommand( __.immut.DataclassObject ):
 
     async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the check command. '''
-        from . import engine as _engine
-        from .rules.implementations import registry as _rule_registry
+        from .rules.implementations.__ import create_registry_manager
+        # TODO: Implement parallel processing with jobs parameter
+        _ = self.jobs  # Suppress vulture warning
         file_paths = _discover_python_files( self.paths )
         if not file_paths:
             result = CheckResult(
@@ -302,7 +300,7 @@ class CheckCommand( __.immut.DataclassObject ):
             context_size = display.context,
             include_context = display.context > 0,
         )
-        registry_manager = _rule_registry.create_default_registry_manager( )
+        registry_manager = create_registry_manager( )
         engine = _engine.Engine( registry_manager, configuration )
         reports = engine.lint_files( file_paths )
         total_violations = sum( len( r.violations ) for r in reports )
@@ -588,10 +586,9 @@ def _parse_rule_selection(
     selection: __.Absential[ str ]
 ) -> frozenset[ str ]:
     ''' Parses comma-separated rule codes or returns all rules. '''
-    from .rules.implementations import registry as _rule_registry
+    from .rules.implementations.__ import RULE_DESCRIPTORS
     if __.is_absent( selection ):
-        registry_manager = _rule_registry.create_default_registry_manager( )
-        return frozenset( registry_manager.registry.keys( ) )
+        return frozenset( RULE_DESCRIPTORS.keys( ) )
     return frozenset( code.strip( ) for code in selection.split( ',' ) )
 
 

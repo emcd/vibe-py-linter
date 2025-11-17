@@ -39,6 +39,7 @@ import                      libcst
 import                      libcst.metadata
 import typing_extensions as typx
 # --- BEGIN: Injected by Copier ---
+import accretive as         accret
 import dynadoc as           ddoc
 import frigid as            immut
 import tyro
