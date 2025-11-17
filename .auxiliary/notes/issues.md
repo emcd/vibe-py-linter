@@ -61,9 +61,32 @@ dataclass `__init__` signatures.
 - Determine if there's a missing import, decorator, or configuration
 - Consider whether the issue relates to how the result classes are defined
 
+### Potential Solution (Not Attempted)
+
+According to maintainer feedback, the issue may have been resolved by making the
+result classes explicitly inherit from `RenderableResult` after it was defined
+with dual inheritance from `DataclassProtocol` and `Protocol`. The type checker
+errors may disappear when classes explicitly inherit rather than using structural
+typing alone.
+
+Example that might work:
+```python
+class RenderableResult( __.immut.DataclassProtocol, __.typx.Protocol ):
+    # Protocol methods here
+    ...
+
+class CheckResult( __.immut.DataclassObject, RenderableResult ):
+    # Explicit inheritance from both DataclassObject and the protocol
+    ...
+```
+
+This suggests that `DataclassProtocol` may work better as an ABC base class than
+as a pure structural protocol when used with dataclass implementations.
+
 ### Workaround
 
 Currently using `__.typx.Protocol` alone with `@__.typx.runtime_checkable`, which
 provides structural subtyping without the dataclass-specific protocol features.
 Result classes satisfy the protocol through their method implementations without
-explicit inheritance.
+explicit inheritance. This works correctly but doesn't leverage DataclassProtocol's
+features.
