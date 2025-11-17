@@ -254,15 +254,14 @@ class CheckCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the check command. '''
-        async with intercept_errors( self.display ):
-            result = CheckResult(
-                paths = self.paths,
-                context_lines = self.display.context,
-                jobs = self.jobs,
-                rule_selection = self.select,
-            )
-            async with __.ctxl.AsyncExitStack( ) as exits:
-                await _render_and_print_result( result, self.display, exits )
+        result = CheckResult(
+            paths = self.paths,
+            context_lines = self.display.context,
+            jobs = self.jobs,
+            rule_selection = self.select,
+        )
+        async with __.ctxl.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -293,16 +292,15 @@ class FixCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the fix command. '''
-        async with intercept_errors( self.display ):
-            result = FixResult(
-                paths = self.paths,
-                simulate = self.simulate,
-                diff_format = self.diff_format.value,
-                apply_dangerous = self.apply_dangerous,
-                rule_selection = self.select,
-            )
-            async with __.ctxl.AsyncExitStack( ) as exits:
-                await _render_and_print_result( result, self.display, exits )
+        result = FixResult(
+            paths = self.paths,
+            simulate = self.simulate,
+            diff_format = self.diff_format.value,
+            apply_dangerous = self.apply_dangerous,
+            rule_selection = self.select,
+        )
+        async with __.ctxl.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -332,14 +330,13 @@ class ConfigureCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the configure command. '''
-        async with intercept_errors( self.display ):
-            result = ConfigureResult(
-                validate = self.validate,
-                interactive = self.interactive,
-                display_effective = self.display_effective,
-            )
-            async with __.ctxl.AsyncExitStack( ) as exits:
-                await _render_and_print_result( result, self.display, exits )
+        result = ConfigureResult(
+            validate = self.validate,
+            interactive = self.interactive,
+            display_effective = self.display_effective,
+        )
+        async with __.ctxl.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -360,10 +357,9 @@ class DescribeRulesCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the describe rules command. '''
-        async with intercept_errors( self.display ):
-            result = DescribeRulesResult( details = self.details )
-            async with __.ctxl.AsyncExitStack( ) as exits:
-                await _render_and_print_result( result, self.display, exits )
+        result = DescribeRulesResult( details = self.details )
+        async with __.ctxl.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -385,13 +381,12 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the describe rule command. '''
-        async with intercept_errors( self.display ):
-            result = DescribeRuleResult(
-                rule_id = self.rule_id,
-                details = self.details,
-            )
-            async with __.ctxl.AsyncExitStack( ) as exits:
-                await _render_and_print_result( result, self.display, exits )
+        result = DescribeRuleResult(
+            rule_id = self.rule_id,
+            details = self.details,
+        )
+        async with __.ctxl.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -429,10 +424,9 @@ class ServeCommand( __.immut.DataclassObject ):
 
     async def __call__( self ) -> int:
         ''' Executes the serve command. '''
-        async with intercept_errors( self.display ):
-            result = ServeResult( protocol = self.protocol )
-            async with __.ctxl.AsyncExitStack( ) as exits:
-                await _render_and_print_result( result, self.display, exits )
+        result = ServeResult( protocol = self.protocol )
+        async with __.ctxl.AsyncExitStack( ) as exits:
+            await _render_and_print_result( result, self.display, exits )
         return 0
 
 
@@ -471,8 +465,11 @@ class Cli( __.immut.DataclassObject ):
         ''' Invokes selected subcommand after system preparation. '''
         # TODO: Implement verbose logging setup
         _ = self.verbose  # Suppress vulture warning
-        exit_code = await self.command( )
-        raise SystemExit( exit_code )
+        # Error interception uses command's display options
+        display = getattr( self.command, 'display', DisplayOptions( ) )
+        async with intercept_errors( display ):
+            exit_code = await self.command( )
+            raise SystemExit( exit_code )
 
 
 def execute( ) -> None:
