@@ -22,7 +22,7 @@
 
 
 from . import __
-from .base import BaseRule
+from .base import BaseRule as _BaseRule
 
 
 class RuleDescriptor( __.immut.DataclassObject ):
@@ -60,7 +60,7 @@ RuleRegistry: __.typx.TypeAlias = (
     __.immut.Dictionary[ str, RuleDescriptor ] )
 RuleClassFactory: __.typx.TypeAlias = __.cabc.Callable[
     [ str, __.libcst.metadata.MetadataWrapper, tuple[ str, ... ] ],
-    BaseRule
+    _BaseRule
 ]
 
 
@@ -117,7 +117,7 @@ class RuleRegistryManager:
             __.ddoc.Doc( 'Source file lines.' ) ],
         **parameters: __.typx.Any
     ) -> __.typx.Annotated[
-        BaseRule,
+        _BaseRule,
         __.ddoc.Doc( 'Instantiated rule ready for analysis.' ) ]:
         ''' Creates a rule instance from its VBL code. '''
         from ..exceptions import RuleRegistryInvalidity

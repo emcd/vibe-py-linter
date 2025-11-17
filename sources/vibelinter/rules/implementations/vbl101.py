@@ -119,12 +119,11 @@ class VBL101( BaseRule ):
         count: int
     ) -> None:
         ''' Reports a violation for consecutive blank lines. '''
-        # Create a violation at the first excessive blank line
         excess_count = count - self.max_consecutive_blanks
         message = (
-            f'Found {count} consecutive blank lines. '
-            f'Maximum: {self.max_consecutive_blanks}. '
-            f'Remove {excess_count} blank line(s).'
+            f"Found {count} consecutive blank lines. "
+            f"Maximum: {self.max_consecutive_blanks}. "
+            f"Remove {excess_count} blank line(s)."
         )
 
         # Create violation manually with specific line number

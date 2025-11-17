@@ -22,13 +22,12 @@
 ''' Central linter engine coordinating single-pass CST analysis. '''
 
 
-import pathlib
-import time
-
 from . import __
-from .rules import context, violations
-from .rules.registry import RuleRegistryManager
-from .rules.violations import ViolationContext
+from . import exceptions as _exceptions
+from .rules import context as _context
+from .rules import registry as _registry
+from .rules import violations as _violations
+from .rules.base import BaseRule as _BaseRule
 
 
 class EngineConfiguration( __.immut.DataclassObject ):
@@ -57,10 +56,10 @@ class Report( __.immut.DataclassObject ):
     ''' Results of linting analysis including violations and metadata. '''
 
     violations: __.typx.Annotated[
-        tuple[ violations.Violation, ... ],
+        tuple[ _violations.Violation, ... ],
         __.ddoc.Doc( 'All violations detected during analysis.' ) ]
     contexts: __.typx.Annotated[
-        tuple[ ViolationContext, ... ],
+        tuple[ _violations.ViolationContext, ... ],
         __.ddoc.Doc( 'Violation contexts when context extraction enabled.' ) ]
     filename: __.typx.Annotated[
         str, __.ddoc.Doc( 'Path to analyzed source file.' ) ]
@@ -80,7 +79,7 @@ class Engine:
     def __init__(
         self,
         registry_manager: __.typx.Annotated[
-            RuleRegistryManager,
+            _registry.RuleRegistryManager,
             __.ddoc.Doc( 'Rule registry for instantiating rules.' ) ],
         configuration: __.typx.Annotated[
             EngineConfiguration,
@@ -92,7 +91,7 @@ class Engine:
     def lint_file(
         self,
         file_path: __.typx.Annotated[
-            pathlib.Path,
+            __.pathlib.Path,
             __.ddoc.Doc( 'Path to Python source file to analyze.' ) ]
     ) -> __.typx.Annotated[
         Report,
@@ -106,16 +105,11 @@ class Engine:
         self, source_code: str, filename: str
     ) -> tuple[ __.libcst.metadata.MetadataWrapper, tuple[ str, ... ] ]:
         ''' Parses source and creates metadata wrapper. '''
-        from .exceptions import MetadataProvideFailure
-
         module = __.libcst.parse_module( source_code )
         source_lines = tuple( source_code.splitlines( ) )
-
-        try:
-            wrapper = __.libcst.metadata.MetadataWrapper( module )
+        try: wrapper = __.libcst.metadata.MetadataWrapper( module )
         except Exception as exc:
-            raise MetadataProvideFailure( filename ) from exc
-
+            raise _exceptions.MetadataProvideFailure( filename ) from exc
         return wrapper, source_lines
 
     def _instantiate_rules(
@@ -123,12 +117,9 @@ class Engine:
         wrapper: __.libcst.metadata.MetadataWrapper,
         source_lines: tuple[ str, ... ],
         filename: str
-    ) -> list[ __.typx.Any ]:
+    ) -> list[ _BaseRule ]:
         ''' Instantiates all enabled rules with configuration. '''
-        from .exceptions import RuleExecuteFailure
-        from .rules.base import BaseRule
-
-        rules: list[ BaseRule ] = [ ]
+        rules: list[ _BaseRule ] = [ ]
         for vbl_code in self.configuration.enabled_rules:
             params = self.configuration.rule_parameters.get(
                 vbl_code, __.immut.Dictionary( ) )
@@ -138,36 +129,30 @@ class Engine:
                     filename = filename,
                     wrapper = wrapper,
                     source_lines = source_lines,
-                    **params
-                )
+                    **params )
                 rules.append( rule )
             except Exception as exc:
-                raise RuleExecuteFailure( vbl_code ) from exc
-
+                raise _exceptions.RuleExecuteFailure( vbl_code ) from exc
         return rules
 
     def _execute_rules(
         self,
-        rules: list[ __.typx.Any ],
+        rules: list[ _BaseRule ],
         wrapper: __.libcst.metadata.MetadataWrapper
     ) -> None:
         ''' Executes rules via single-pass CST traversal. '''
-        from .exceptions import RuleExecuteFailure
-
         for rule in rules:
-            try:
-                wrapper.visit( rule )
+            try: wrapper.visit( rule )
             except Exception as exc:  # noqa: PERF203
-                raise RuleExecuteFailure( rule.rule_id ) from exc
+                raise _exceptions.RuleExecuteFailure( rule.rule_id ) from exc
 
     def _collect_violations(
-        self, rules: list[ __.typx.Any ]
-    ) -> list[ violations.Violation ]:
+        self, rules: list[ _BaseRule ]
+    ) -> list[ _violations.Violation ]:
         ''' Collects and sorts violations from all rules. '''
-        all_violations: list[ violations.Violation ] = [ ]
+        all_violations: list[ _violations.Violation ] = [ ]
         for rule in rules:
             all_violations.extend( rule.violations )
-
         all_violations.sort( key = lambda v: ( v.line, v.column ) )
         return all_violations
 
@@ -184,48 +169,38 @@ class Engine:
         __.ddoc.Doc(
             'Analysis results including violations and metadata.' ) ]:
         ''' Analyzes Python source code and returns violations. '''
-        from .exceptions import MetadataProvideFailure, RuleExecuteFailure
-
-        analysis_start_time = time.perf_counter( )
-
+        analysis_start_time = __.time.perf_counter( )
         try:
             wrapper, source_lines = self._create_metadata_wrapper(
                 source_code, filename )
             rules = self._instantiate_rules( wrapper, source_lines, filename )
             self._execute_rules( rules, wrapper )
             all_violations = self._collect_violations( rules )
-
-            # Extract contexts if enabled
-            violation_contexts: tuple[ ViolationContext, ... ] = ( )
+            violation_contexts: tuple[
+                _violations.ViolationContext, ... ] = ( )
             if self.configuration.include_context and all_violations:
-                violation_contexts = context.extract_contexts_for_violations(
+                violation_contexts = _context.extract_contexts_for_violations(
                     all_violations,
                     source_lines,
-                    self.configuration.context_size
-                )
-
+                    self.configuration.context_size )
             analysis_duration_ms = (
-                ( time.perf_counter( ) - analysis_start_time ) * 1000 )
-
+                ( __.time.perf_counter( ) - analysis_start_time ) * 1000 )
             return Report(
                 violations = tuple( all_violations ),
                 contexts = violation_contexts,
                 filename = filename,
                 rule_count = len( rules ),
-                analysis_duration_ms = analysis_duration_ms,
-            )
-
-        except ( MetadataProvideFailure, RuleExecuteFailure ):
-            # Re-raise our own exceptions
+                analysis_duration_ms = analysis_duration_ms )
+        except ( _exceptions.MetadataProvideFailure,
+                 _exceptions.RuleExecuteFailure ):
             raise
         except Exception as exc:
-            # Wrap unexpected exceptions
-            raise RuleExecuteFailure( filename ) from exc
+            raise _exceptions.RuleExecuteFailure( filename ) from exc
 
     def lint_files(
         self,
         file_paths: __.typx.Annotated[
-            __.cabc.Sequence[ pathlib.Path ],
+            __.cabc.Sequence[ __.pathlib.Path ],
             __.ddoc.Doc( 'Paths to Python source files to analyze.' ) ]
     ) -> __.typx.Annotated[
         tuple[ Report, ... ],
@@ -233,12 +208,7 @@ class Engine:
         ''' Analyzes multiple Python source files. '''
         reports: list[ Report ] = [ ]
         for file_path in file_paths:
-            try:
-                report = self.lint_file( file_path )
-                reports.append( report )
-            except Exception:  # noqa: PERF203, S112
-                # For batch analysis, we continue on errors
-                # Individual file errors are logged but don't stop the batch
-                # Future enhancement: collect errors in report
-                continue
+            try: report = self.lint_file( file_path )
+            except Exception: continue  # noqa: S112
+            reports.append( report )
         return tuple( reports )

@@ -21,7 +21,7 @@
 ''' Base rule framework with collection-then-analysis pattern. '''
 
 
-import abc
+from abc import abstractmethod as _abstractmethod
 
 from . import __
 
@@ -34,7 +34,7 @@ class BaseRule( __.libcst.CSTVisitor ):
         violations. Supports complex rules requiring complete file information.
 
         Note: Cannot inherit from abc.ABC due to metaclass conflict with
-        CSTVisitor. However, @abc.abstractmethod decorators still enforce
+        CSTVisitor. However, @abstractmethod decorators still enforce
         abstract method requirements.
     '''
 
@@ -65,7 +65,7 @@ class BaseRule( __.libcst.CSTVisitor ):
         self._violations: list[ __.violations.Violation ] = [ ]
 
     @property
-    @abc.abstractmethod
+    @_abstractmethod
     def rule_id( self ) -> __.typx.Annotated[
         str,
         __.ddoc.Doc( 'Unique identifier for rule (VBL code).' ) ]:
@@ -87,7 +87,7 @@ class BaseRule( __.libcst.CSTVisitor ):
         _ = original_node  # Required by LibCST interface
         self._analyze_collections( )
 
-    @abc.abstractmethod
+    @_abstractmethod
     def _analyze_collections( self ) -> None:
         ''' Analyzes collected data and generates violations.
 
@@ -134,26 +134,17 @@ class BaseRule( __.libcst.CSTVisitor ):
             ) ] = 2,
     ) -> __.violations.ViolationContext:
         ''' Extracts source code context around violation. '''
-        # Calculate context range
         start_line = max( 1, line - context_size )
         end_line = min( len( self.source_lines ), line + context_size )
-
-        # Extract context lines (convert to 0-indexed for array access)
         context_lines = tuple(
             self.source_lines[ i ]
-            for i in range( start_line - 1, end_line )
-        )
-
-        # Find the violation in _violations list to create ViolationContext
-        # This is a helper method, so we assume the violation was just created
+            for i in range( start_line - 1, end_line ) )
         if self._violations:
             violation = self._violations[ -1 ]
             return __.violations.ViolationContext(
                 violation = violation,
                 context_lines = context_lines,
-                context_start_line = start_line,
-            )
-        # Should not happen in normal usage, but handle gracefully
+                context_start_line = start_line )
         raise __.immut.exceptions.Omnierror( )
 
     def _position_from_node(
@@ -166,10 +157,5 @@ class BaseRule( __.libcst.CSTVisitor ):
         try:
             position = self.wrapper.resolve(
                 __.libcst.metadata.PositionProvider )[ node ]
-            # LibCST provides 1-indexed lines, 0-indexed columns
-            # We want 1-indexed for both
             return ( position.start.line, position.start.column + 1 )
-        except KeyError:
-            # If position is not available, return (1, 1) as fallback
-            # This should not happen in normal operation
-            return ( 1, 1 )
+        except KeyError: return ( 1, 1 )
