@@ -90,15 +90,12 @@ class RuleRegistryManager:
         __.ddoc.Doc( 'Canonical VBL code for identifier.' ) ]:
         ''' Resolves VBL code or descriptive name to VBL code. '''
         from ..exceptions import RuleRegistryInvalidity
-
         # Try as VBL code first
         if identifier in self.registry:
             return identifier
-
         # Try as descriptive name
         if identifier in self._name_to_code:
             return self._name_to_code[ identifier ]
-
         raise RuleRegistryInvalidity( identifier )
 
     def produce_rule_instance(
@@ -121,13 +118,10 @@ class RuleRegistryManager:
         __.ddoc.Doc( 'Instantiated rule ready for analysis.' ) ]:
         ''' Creates a rule instance from its VBL code. '''
         from ..exceptions import RuleRegistryInvalidity
-
         if vbl_code not in self.registry:
             raise RuleRegistryInvalidity( vbl_code )
-
         descriptor = self.registry[ vbl_code ]
         rule_class = descriptor.rule_class
-
         # Instantiate rule with parameters
         # Base parameters are filename, wrapper, source_lines
         # Additional parameters can be passed as keyword arguments

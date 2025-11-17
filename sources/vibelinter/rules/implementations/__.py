@@ -20,10 +20,11 @@
 
 ''' Re-exports and global registry for rule implementations. '''
 
-# ruff: noqa: F403, F405
+# ruff: noqa: F403, F405, F401
 
 
 from ..__ import *
+from ..base import BaseRule
 from ..registry import *
 
 

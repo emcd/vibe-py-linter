@@ -104,16 +104,8 @@ class CheckResult( RenderableResult ):
         files_data: list[ dict[ str, __.typx.Any ] ] = [ ]
         for report_obj in self.reports:
             typed_report = __.typx.cast( _engine.Report, report_obj )
-            violations_data: list[ dict[ str, __.typx.Any ] ] = [
-                {
-                    'rule_id': v.rule_id,
-                    'filename': v.filename,
-                    'line': v.line,
-                    'column': v.column,
-                    'message': v.message,
-                    'severity': v.severity,
-                }
-                for v in typed_report.violations
+            violations_data = [
+                v.render_as_json( ) for v in typed_report.violations
             ]
             files_data.append( {
                 'filename': typed_report.filename,
@@ -139,9 +131,8 @@ class CheckResult( RenderableResult ):
             if typed_report.violations:
                 lines.append( f'\n{typed_report.filename}:' )
                 lines.extend(
-                    f'  {violation.line}:{violation.column} '
-                    f'{violation.rule_id} {violation.message}'
-                    for violation in typed_report.violations )
+                    v.render_as_text( )
+                    for v in typed_report.violations )
         if not lines:
             lines.append( 'No violations found.' )
         else:
@@ -279,7 +270,7 @@ class CheckCommand( __.immut.DataclassObject ):
 
     async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the check command. '''
-        from .rules.implementations.__ import create_registry_manager
+        from . import rules as _rules
         # TODO: Implement parallel processing with jobs parameter
         _ = self.jobs  # Suppress vulture warning
         file_paths = _discover_python_files( self.paths )
@@ -300,7 +291,7 @@ class CheckCommand( __.immut.DataclassObject ):
             context_size = display.context,
             include_context = display.context > 0,
         )
-        registry_manager = create_registry_manager( )
+        registry_manager = _rules.create_registry_manager( )
         engine = _engine.Engine( registry_manager, configuration )
         reports = engine.lint_files( file_paths )
         total_violations = sum( len( r.violations ) for r in reports )
@@ -522,15 +513,13 @@ def execute( ) -> None:
 @__.ctxl.asynccontextmanager
 async def intercept_errors(
     display: DisplayOptions,
-) -> __.cabc.AsyncIterator[ None ]:
+)-> __.cabc.AsyncIterator[ None ]:
     ''' Context manager that intercepts and renders exceptions.
-
         Catches Omnierror exceptions and renders them according to the
         display format. Handles unexpected exceptions by logging and
         formatting as errors.
     '''
     from . import exceptions as _exceptions
-
     try:
         yield
     except _exceptions.Omnierror as exc:

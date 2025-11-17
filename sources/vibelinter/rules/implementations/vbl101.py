@@ -32,11 +32,10 @@
 '''
 
 
-from ..base import BaseRule
 from . import __
 
 
-class VBL101( BaseRule ):
+class VBL101( __.BaseRule ):
     ''' Detects any blank lines within function bodies. '''
 
     @property

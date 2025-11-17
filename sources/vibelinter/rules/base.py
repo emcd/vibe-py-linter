@@ -79,7 +79,6 @@ class BaseRule( __.libcst.CSTVisitor ):
         self, original_node: __.libcst.Module
     ) -> None:
         ''' Performs analysis after CST traversal completes.
-
             Subclasses must override _analyze_collections to implement
             rule-specific analysis logic using collected data.
         '''
@@ -89,7 +88,6 @@ class BaseRule( __.libcst.CSTVisitor ):
     @__.abc.abstractmethod
     def _analyze_collections( self ) -> None:
         ''' Analyzes collected data and generates violations.
-
             Called by leave_Module after traversal completes.
             Implementations should examine collected data and call
             _produce_violation for any violations discovered.
@@ -150,7 +148,6 @@ class BaseRule( __.libcst.CSTVisitor ):
         self, node: __.libcst.CSTNode
     ) -> tuple[ int, int ]:
         ''' Extracts (line, column) position from CST node.
-
             Returns one-indexed line and column numbers for consistency.
         '''
         try:

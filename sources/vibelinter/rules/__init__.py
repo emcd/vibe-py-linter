@@ -22,3 +22,4 @@
 
 
 from . import __
+from .implementations.__ import create_registry_manager
