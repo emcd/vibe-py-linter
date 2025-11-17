@@ -513,8 +513,9 @@ def execute( ) -> None:
 @__.ctxl.asynccontextmanager
 async def intercept_errors(
     display: DisplayOptions,
-)-> __.cabc.AsyncIterator[ None ]:
+) -> __.cabc.AsyncIterator[ None ]:
     ''' Context manager that intercepts and renders exceptions.
+
         Catches Omnierror exceptions and renders them according to the
         display format. Handles unexpected exceptions by logging and
         formatting as errors.

@@ -24,7 +24,6 @@
 
 
 import                      abc
-import accretive as         accret
 import collections.abc as   cabc
 import contextlib as        ctxl
 import dataclasses as       dcls
@@ -36,6 +35,7 @@ import                      sys
 import                      time
 import                      types
 
+import accretive as         accret
 import                      libcst
 import                      libcst.metadata
 import typing_extensions as typx

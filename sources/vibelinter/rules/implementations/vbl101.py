@@ -68,15 +68,36 @@ class VBL101( __.BaseRule ):
         return True  # Continue visiting children
 
     def _analyze_collections( self ) -> None:
-        ''' Analyzes collected functions for any blank lines. '''
+        ''' Analyzes collected functions for blank lines outside docstrings.
+            Blank lines inside docstrings are allowed.
+        '''
         for start_line, end_line, _func_node in self._function_ranges:
             # Get function body start (after the def line)
             body_start = start_line + 1
+            in_docstring = False
+            docstring_delimiter = None
             for line_num in range( body_start, end_line + 1 ):
                 if line_num - 1 >= len( self.source_lines ): break
                 line = self.source_lines[ line_num - 1 ]
-                # Report violation for any blank line
-                if not line.strip( ):
+                stripped = line.strip( )
+                # Track docstring state
+                if not in_docstring:
+                    # Check if this line starts a docstring
+                    starts_triple_double = stripped.startswith( '"""' )
+                    starts_triple_single = stripped.startswith( "'''" )
+                    if starts_triple_double or starts_triple_single:
+                        docstring_delimiter = stripped[ :3 ]
+                        in_docstring = True
+                        # Check if docstring closes on same line
+                        delimiter_count = stripped.count( docstring_delimiter )
+                        if delimiter_count >= 2:  # noqa: PLR2004
+                            in_docstring = False
+                elif docstring_delimiter and docstring_delimiter in stripped:
+                    # Docstring ends on this line
+                    in_docstring = False
+                    docstring_delimiter = None
+                # Report violation for blank lines outside docstrings
+                if not stripped and not in_docstring:
                     self._report_blank_line( line_num )
 
     def _report_blank_line( self, line_num: int ) -> None:
