@@ -31,6 +31,20 @@ class Omniexception( __.immut.exceptions.Omniexception ):
 class Omnierror( Omniexception, Exception ):
     ''' Base for error exceptions raised by package API. '''
 
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders exception as JSON-compatible dictionary. '''
+        return {
+            'type': self.__class__.__name__,
+            'message': str( self ),
+        }
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders exception as text lines. '''
+        return (
+            f'## {self.__class__.__name__}',
+            f'**Message**: {self}',
+        )
+
 
 # Rule execution exceptions
 class RuleExecuteFailure( Omnierror ):

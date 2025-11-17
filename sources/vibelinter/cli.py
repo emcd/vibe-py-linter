@@ -72,6 +72,18 @@ PathsArgument: __.typx.TypeAlias = __.typx.Annotated[
 ]
 
 
+class RenderableResult( __.typx.Protocol ):
+    ''' Protocol for command results with format-specific rendering. '''
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders result as JSON-compatible dictionary. '''
+        ...
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders result as text lines. '''
+        ...
+
+
 class CheckResult( __.immut.DataclassObject ):
     ''' Result from check command execution. '''
 
@@ -463,10 +475,7 @@ def execute( ) -> None:
 
 
 async def _render_and_print_result(
-    result: __.typx.Union[
-        CheckResult, FixResult, ConfigureResult,
-        DescribeRulesResult, DescribeRuleResult, ServeResult
-    ],
+    result: RenderableResult,
     display: DisplayOptions,
     exits: __.ctxl.AsyncExitStack,
 ) -> None:
