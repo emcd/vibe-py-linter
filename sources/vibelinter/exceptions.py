@@ -31,6 +31,20 @@ class Omniexception( __.immut.exceptions.Omniexception ):
 class Omnierror( Omniexception, Exception ):
     ''' Base for error exceptions raised by package API. '''
 
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders exception as JSON-compatible dictionary. '''
+        return {
+            'type': self.__class__.__name__,
+            'message': str( self ),
+        }
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders exception as text lines. '''
+        return (
+            f'## {self.__class__.__name__}',
+            f'**Message**: {self}',
+        )
+
 
 # Rule execution exceptions
 class RuleExecuteFailure( Omnierror ):
@@ -41,6 +55,22 @@ class RuleExecuteFailure( Omnierror ):
             f'Rule execution failed for {context!r}' )
         self.context = context
 
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders exception with context information. '''
+        return {
+            'type': self.__class__.__name__,
+            'message': str( self ),
+            'context': self.context,
+        }
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders exception with context information. '''
+        return (
+            f'## {self.__class__.__name__}',
+            f'**Message**: {self}',
+            f'**Context**: {self.context}',
+        )
+
 
 class MetadataProvideFailure( Omnierror ):
     ''' Raised when LibCST metadata provider initialization fails. '''
@@ -49,6 +79,22 @@ class MetadataProvideFailure( Omnierror ):
         super( ).__init__(
             f'Failed to initialize LibCST metadata for {filename!r}' )
         self.filename = filename
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders exception with filename information. '''
+        return {
+            'type': self.__class__.__name__,
+            'message': str( self ),
+            'filename': self.filename,
+        }
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders exception with filename information. '''
+        return (
+            f'## {self.__class__.__name__}',
+            f'**Message**: {self}',
+            f'**Filename**: {self.filename}',
+        )
 
 
 # Configuration exceptions
@@ -59,6 +105,22 @@ class RuleRegistryInvalidity( Omnierror ):
         super( ).__init__(
             f'Unknown or invalid rule identifier: {identifier!r}' )
         self.identifier = identifier
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders exception with identifier information. '''
+        return {
+            'type': self.__class__.__name__,
+            'message': str( self ),
+            'identifier': self.identifier,
+        }
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders exception with identifier information. '''
+        return (
+            f'## {self.__class__.__name__}',
+            f'**Message**: {self}',
+            f'**Identifier**: {self.identifier}',
+        )
 
 
 class RuleConfigureFailure( Omnierror ):

@@ -72,7 +72,26 @@ PathsArgument: __.typx.TypeAlias = __.typx.Annotated[
 ]
 
 
-class CheckResult( __.immut.DataclassObject ):
+class RenderableResult( __.immut.DataclassProtocol, __.typx.Protocol ):
+    ''' Protocol for command results with format-specific rendering.
+
+        Combines DataclassProtocol and Protocol to provide both structural
+        typing and dataclass compatibility. Result classes should explicitly
+        inherit from this base class.
+    '''
+
+    @__.abc.abstractmethod
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders result as JSON-compatible dictionary. '''
+        ...
+
+    @__.abc.abstractmethod
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders result as text lines. '''
+        ...
+
+
+class CheckResult( RenderableResult ):
     ''' Result from check command execution. '''
 
     paths: tuple[ str, ... ]
@@ -101,7 +120,7 @@ class CheckResult( __.immut.DataclassObject ):
         return tuple( lines )
 
 
-class FixResult( __.immut.DataclassObject ):
+class FixResult( RenderableResult ):
     ''' Result from fix command execution. '''
 
     paths: tuple[ str, ... ]
@@ -133,7 +152,7 @@ class FixResult( __.immut.DataclassObject ):
         return tuple( lines )
 
 
-class ConfigureResult( __.immut.DataclassObject ):
+class ConfigureResult( RenderableResult ):
     ''' Result from configure command execution. '''
 
     validate: bool
@@ -158,7 +177,7 @@ class ConfigureResult( __.immut.DataclassObject ):
         )
 
 
-class DescribeRulesResult( __.immut.DataclassObject ):
+class DescribeRulesResult( RenderableResult ):
     ''' Result from describe rules command execution. '''
 
     details: bool
@@ -175,7 +194,7 @@ class DescribeRulesResult( __.immut.DataclassObject ):
         )
 
 
-class DescribeRuleResult( __.immut.DataclassObject ):
+class DescribeRuleResult( RenderableResult ):
     ''' Result from describe rule command execution. '''
 
     rule_id: str
@@ -196,7 +215,7 @@ class DescribeRuleResult( __.immut.DataclassObject ):
         )
 
 
-class ServeResult( __.immut.DataclassObject ):
+class ServeResult( RenderableResult ):
     ''' Result from serve command execution. '''
 
     protocol: str
@@ -221,26 +240,22 @@ class CheckCommand( __.immut.DataclassObject ):
 
     paths: PathsArgument = ( '.',)
     select: __.Absential[ RuleSelectorArgument ] = __.absent
-    display: __.typx.Annotated[
-        DisplayOptions,
-        __.tyro.conf.arg( prefix_name = False ),
-    ] = __.dcls.field( default_factory = DisplayOptions )
     jobs: __.typx.Annotated[
         __.typx.Union[ int, __.typx.Literal[ 'auto' ] ],
         __.tyro.conf.arg( prefix_name = False ),
         __.ddoc.Doc( ''' Number of parallel processing jobs. ''' )
     ] = 'auto'
 
-    async def __call__( self ) -> int:
+    async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the check command. '''
         result = CheckResult(
             paths = self.paths,
-            context_lines = self.display.context,
+            context_lines = display.context,
             jobs = self.jobs,
             rule_selection = self.select,
         )
         async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+            await _render_and_print_result( result, display, exits )
         return 0
 
 
@@ -249,10 +264,6 @@ class FixCommand( __.immut.DataclassObject ):
 
     paths: PathsArgument = ( '.',)
     select: __.Absential[ RuleSelectorArgument ] = __.absent
-    display: __.typx.Annotated[
-        DisplayOptions,
-        __.tyro.conf.arg( prefix_name = False ),
-    ] = __.dcls.field( default_factory = DisplayOptions )
     simulate: __.typx.Annotated[
         bool,
         __.tyro.conf.arg( prefix_name = False ),
@@ -269,7 +280,7 @@ class FixCommand( __.immut.DataclassObject ):
         __.ddoc.Doc( ''' Enable potentially unsafe fixes. ''' )
     ] = False
 
-    async def __call__( self ) -> int:
+    async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the fix command. '''
         result = FixResult(
             paths = self.paths,
@@ -279,17 +290,13 @@ class FixCommand( __.immut.DataclassObject ):
             rule_selection = self.select,
         )
         async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+            await _render_and_print_result( result, display, exits )
         return 0
 
 
 class ConfigureCommand( __.immut.DataclassObject ):
     ''' Manages configuration without destructive file editing. '''
 
-    display: __.typx.Annotated[
-        DisplayOptions,
-        __.tyro.conf.arg( prefix_name = False ),
-    ] = __.dcls.field( default_factory = DisplayOptions )
     validate: __.typx.Annotated[
         bool,
         __.tyro.conf.arg( prefix_name = False ),
@@ -307,7 +314,7 @@ class ConfigureCommand( __.immut.DataclassObject ):
         __.ddoc.Doc( ''' Display effective merged configuration. ''' )
     ] = False
 
-    async def __call__( self ) -> int:
+    async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the configure command. '''
         result = ConfigureResult(
             validate = self.validate,
@@ -315,17 +322,13 @@ class ConfigureCommand( __.immut.DataclassObject ):
             display_effective = self.display_effective,
         )
         async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+            await _render_and_print_result( result, display, exits )
         return 0
 
 
 class DescribeRulesCommand( __.immut.DataclassObject ):
     ''' Lists all available rules with descriptions. '''
 
-    display: __.typx.Annotated[
-        DisplayOptions,
-        __.tyro.conf.arg( prefix_name = False ),
-    ] = __.dcls.field( default_factory = DisplayOptions )
     details: __.typx.Annotated[
         bool,
         __.tyro.conf.arg( prefix_name = False ),
@@ -334,11 +337,11 @@ class DescribeRulesCommand( __.immut.DataclassObject ):
             ''' configuration status. ''' )
     ] = False
 
-    async def __call__( self ) -> int:
+    async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the describe rules command. '''
         result = DescribeRulesResult( details = self.details )
         async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+            await _render_and_print_result( result, display, exits )
         return 0
 
 
@@ -346,10 +349,6 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
     ''' Displays detailed information for a specific rule. '''
 
     rule_id: __.tyro.conf.Positional[ str ]
-    display: __.typx.Annotated[
-        DisplayOptions,
-        __.tyro.conf.arg( prefix_name = False ),
-    ] = __.dcls.field( default_factory = DisplayOptions )
     details: __.typx.Annotated[
         bool,
         __.tyro.conf.arg( prefix_name = False ),
@@ -358,14 +357,14 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
             ''' configuration status. ''' )
     ] = False
 
-    async def __call__( self ) -> int:
+    async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the describe rule command. '''
         result = DescribeRuleResult(
             rule_id = self.rule_id,
             details = self.details,
         )
         async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+            await _render_and_print_result( result, display, exits )
         return 0
 
 
@@ -383,29 +382,25 @@ class DescribeCommand( __.immut.DataclassObject ):
         ],
     ]
 
-    async def __call__( self ) -> int:
+    async def __call__( self, display: DisplayOptions ) -> int:
         ''' Delegates to selected subcommand. '''
-        return await self.subcommand( )
+        return await self.subcommand( display )
 
 
 class ServeCommand( __.immut.DataclassObject ):
     ''' Starts a protocol server (future implementation). '''
 
-    display: __.typx.Annotated[
-        DisplayOptions,
-        __.tyro.conf.arg( prefix_name = False ),
-    ] = __.dcls.field( default_factory = DisplayOptions )
     protocol: __.typx.Annotated[
         __.typx.Literal[ 'lsp', 'mcp' ],
         __.tyro.conf.arg( prefix_name = False ),
         __.ddoc.Doc( ''' Protocol server to start. ''' )
     ] = 'mcp'
 
-    async def __call__( self ) -> int:
+    async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the serve command. '''
         result = ServeResult( protocol = self.protocol )
         async with __.ctxl.AsyncExitStack( ) as exits:
-            await _render_and_print_result( result, self.display, exits )
+            await _render_and_print_result( result, display, exits )
         return 0
 
 
@@ -435,6 +430,10 @@ class Cli( __.immut.DataclassObject ):
             __.tyro.conf.subcommand( 'serve', prefix_name = False ),
         ],
     ]
+    display: __.typx.Annotated[
+        DisplayOptions,
+        __.tyro.conf.arg( prefix_name = False ),
+    ] = __.dcls.field( default_factory = DisplayOptions )
     verbose: __.typx.Annotated[
         bool,
         __.ddoc.Doc( ''' Enable verbose output. ''' )
@@ -444,8 +443,9 @@ class Cli( __.immut.DataclassObject ):
         ''' Invokes selected subcommand after system preparation. '''
         # TODO: Implement verbose logging setup
         _ = self.verbose  # Suppress vulture warning
-        exit_code = await self.command( )
-        raise SystemExit( exit_code )
+        async with intercept_errors( self.display ):
+            exit_code = await self.command( self.display )
+            raise SystemExit( exit_code )
 
 
 def execute( ) -> None:
@@ -462,11 +462,53 @@ def execute( ) -> None:
         raise SystemExit( 1 ) from None
 
 
+@__.ctxl.asynccontextmanager
+async def intercept_errors(
+    display: DisplayOptions,
+) -> __.cabc.AsyncIterator[ None ]:
+    ''' Context manager that intercepts and renders exceptions.
+
+        Catches Omnierror exceptions and renders them according to the
+        display format. Handles unexpected exceptions by logging and
+        formatting as errors.
+    '''
+    from . import exceptions as _exceptions
+
+    try:
+        yield
+    except _exceptions.Omnierror as exc:
+        async with __.ctxl.AsyncExitStack( ) as exits:
+            stream = await display.provide_stream( exits )
+            match display.format:
+                case OutputFormats.Json:
+                    stream.write(
+                        __.json.dumps( exc.render_as_json( ), indent = 2 ) )
+                    stream.write( '\n' )
+                case OutputFormats.Text:
+                    for line in exc.render_as_text( ):
+                        stream.write( line )
+                        stream.write( '\n' )
+        raise SystemExit( 1 ) from exc
+    except BaseException as exc:
+        # TODO: Log exception with proper error handling via scribe
+        async with __.ctxl.AsyncExitStack( ) as exits:
+            stream = await display.provide_stream( exits )
+            match display.format:
+                case OutputFormats.Json:
+                    error_data = {
+                        'type': 'unexpected_error',
+                        'message': str( exc ),
+                    }
+                    stream.write( __.json.dumps( error_data, indent = 2 ) )
+                    stream.write( '\n' )
+                case OutputFormats.Text:
+                    stream.write( '## Unexpected Error\n' )
+                    stream.write( f'**Message**: {exc}\n' )
+        raise SystemExit( 1 ) from exc
+
+
 async def _render_and_print_result(
-    result: __.typx.Union[
-        CheckResult, FixResult, ConfigureResult,
-        DescribeRulesResult, DescribeRuleResult, ServeResult
-    ],
+    result: RenderableResult,
     display: DisplayOptions,
     exits: __.ctxl.AsyncExitStack,
 ) -> None:
