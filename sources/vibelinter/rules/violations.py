@@ -46,6 +46,23 @@ class Violation( __.immut.DataclassObject ):
         __.ddoc.Doc( "Severity level: 'error', 'warning', or 'info'." ) ] = (
             'error' )
 
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders violation as JSON-compatible dictionary. '''
+        return {
+            'rule_id': self.rule_id,
+            'filename': self.filename,
+            'line': self.line,
+            'column': self.column,
+            'message': self.message,
+            'severity': self.severity,
+        }
+
+    def render_as_text( self ) -> str:
+        ''' Renders violation as text line. '''
+        return (
+            f'  {self.line}:{self.column} '
+            f'{self.rule_id} {self.message}' )
+
 
 class ViolationContext( __.immut.DataclassObject ):
     ''' Represents source code context surrounding a violation.

@@ -22,6 +22,7 @@
 
 
 from . import __
+from . import violations as _violations
 
 
 class ContextExtractor:
@@ -38,7 +39,7 @@ class ContextExtractor:
     def extract_violation_context(
         self,
         violation: __.typx.Annotated[
-            __.violations.Violation,
+            _violations.Violation,
             __.ddoc.Doc( 'Violation to extract context for.' ) ],
         context_size: __.typx.Annotated[
             int,
@@ -46,7 +47,7 @@ class ContextExtractor:
                 'Number of lines to show before and after violation.'
             ) ] = 2,
     ) -> __.typx.Annotated[
-        __.violations.ViolationContext,
+        _violations.ViolationContext,
         __.ddoc.Doc( 'Violation with surrounding source context.' ) ]:
         ''' Extracts source code context around a violation. '''
         line = violation.line
@@ -57,7 +58,7 @@ class ContextExtractor:
             self.source_lines[ i ]
             for i in range( start_line - 1, end_line )
         )
-        return __.violations.ViolationContext(
+        return _violations.ViolationContext(
             violation = violation,
             context_lines = context_lines,
             context_start_line = start_line,
@@ -66,7 +67,7 @@ class ContextExtractor:
     def format_context_display(
         self,
         context: __.typx.Annotated[
-            __.violations.ViolationContext,
+            _violations.ViolationContext,
             __.ddoc.Doc( 'Violation context to format for display.' ) ],
         highlight_line: __.typx.Annotated[
             bool,
@@ -91,7 +92,7 @@ class ContextExtractor:
 
 def extract_contexts_for_violations(
     violations: __.typx.Annotated[
-        __.violations.ViolationSequence,
+        _violations.ViolationSequence,
         __.ddoc.Doc( 'Sequence of violations to extract contexts for.' ) ],
     source_lines: __.typx.Annotated[
         __.cabc.Sequence[ str ],
@@ -101,7 +102,7 @@ def extract_contexts_for_violations(
         __.ddoc.Doc(
             'Number of lines to show before and after each violation.'
         ) ] = 2,
-) -> tuple[ __.violations.ViolationContext, ... ]:
+) -> tuple[ _violations.ViolationContext, ... ]:
     ''' Extracts contexts for multiple violations efficiently. '''
     extractor = ContextExtractor( tuple( source_lines ) )
     return tuple(

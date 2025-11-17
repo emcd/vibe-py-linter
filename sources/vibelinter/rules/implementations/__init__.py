@@ -21,4 +21,8 @@
 ''' Concrete rule implementations. '''
 
 
-from .. import __
+# Import __ first to initialize RULE_DESCRIPTORS
+from . import __
+
+# Import rules to trigger self-registration
+from . import vbl101

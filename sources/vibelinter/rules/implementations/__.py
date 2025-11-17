@@ -18,10 +18,21 @@
 #============================================================================#
 
 
+''' Re-exports and global registry for rule implementations. '''
 
-''' Common imports for rules subsystem. '''
-
-# ruff: noqa: F403
+# ruff: noqa: F403, F405, F401
 
 
 from ..__ import *
+from ..base import BaseRule
+from ..registry import *
+
+
+# Global mutable registry for self-registering rules
+RULE_DESCRIPTORS: accret.Dictionary[ str, RuleDescriptor ] = (
+    accret.Dictionary( ) )
+
+
+def create_registry_manager( ) -> RuleRegistryManager:
+    ''' Creates rule registry manager from self-registered rules. '''
+    return RuleRegistryManager( dict( RULE_DESCRIPTORS ) )
