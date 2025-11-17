@@ -30,6 +30,12 @@ from .rules import violations as _violations
 from .rules.base import BaseRule as _BaseRule
 
 
+def _create_empty_rule_parameters( ) -> __.immut.Dictionary[
+    str, __.immut.Dictionary[ str, __.typx.Any ] ]:
+    ''' Creates empty rule parameters dictionary. '''
+    return __.immut.Dictionary( )
+
+
 class EngineConfiguration( __.immut.DataclassObject ):
     ''' Configuration for linter engine behavior and rule selection. '''
 
@@ -41,7 +47,7 @@ class EngineConfiguration( __.immut.DataclassObject ):
             str, __.immut.Dictionary[ str, __.typx.Any ] ],
         __.ddoc.Doc(
             'Rule-specific configuration parameters indexed by VBL code.'
-        ) ] = __.immut.Dictionary( )
+        ) ] = __.dcls.field( default_factory = _create_empty_rule_parameters )
     context_size: __.typx.Annotated[
         int,
         __.ddoc.Doc(
@@ -170,32 +176,26 @@ class Engine:
             'Analysis results including violations and metadata.' ) ]:
         ''' Analyzes Python source code and returns violations. '''
         analysis_start_time = __.time.perf_counter( )
-        try:
-            wrapper, source_lines = self._create_metadata_wrapper(
-                source_code, filename )
-            rules = self._instantiate_rules( wrapper, source_lines, filename )
-            self._execute_rules( rules, wrapper )
-            all_violations = self._collect_violations( rules )
-            violation_contexts: tuple[
-                _violations.ViolationContext, ... ] = ( )
-            if self.configuration.include_context and all_violations:
-                violation_contexts = _context.extract_contexts_for_violations(
-                    all_violations,
-                    source_lines,
-                    self.configuration.context_size )
-            analysis_duration_ms = (
-                ( __.time.perf_counter( ) - analysis_start_time ) * 1000 )
-            return Report(
-                violations = tuple( all_violations ),
-                contexts = violation_contexts,
-                filename = filename,
-                rule_count = len( rules ),
-                analysis_duration_ms = analysis_duration_ms )
-        except ( _exceptions.MetadataProvideFailure,
-                 _exceptions.RuleExecuteFailure ):
-            raise
-        except Exception as exc:
-            raise _exceptions.RuleExecuteFailure( filename ) from exc
+        wrapper, source_lines = self._create_metadata_wrapper(
+            source_code, filename )
+        rules = self._instantiate_rules( wrapper, source_lines, filename )
+        self._execute_rules( rules, wrapper )
+        all_violations = self._collect_violations( rules )
+        violation_contexts: tuple[
+            _violations.ViolationContext, ... ] = ( )
+        if self.configuration.include_context and all_violations:
+            violation_contexts = _context.extract_contexts_for_violations(
+                all_violations,
+                source_lines,
+                self.configuration.context_size )
+        analysis_duration_ms = (
+            ( __.time.perf_counter( ) - analysis_start_time ) * 1000 )
+        return Report(
+            violations = tuple( all_violations ),
+            contexts = violation_contexts,
+            filename = filename,
+            rule_count = len( rules ),
+            analysis_duration_ms = analysis_duration_ms )
 
     def lint_files(
         self,

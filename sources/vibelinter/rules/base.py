@@ -21,8 +21,6 @@
 ''' Base rule framework with collection-then-analysis pattern. '''
 
 
-from abc import abstractmethod as _abstractmethod
-
 from . import __
 
 
@@ -65,7 +63,7 @@ class BaseRule( __.libcst.CSTVisitor ):
         self._violations: list[ __.violations.Violation ] = [ ]
 
     @property
-    @_abstractmethod
+    @__.abc.abstractmethod
     def rule_id( self ) -> __.typx.Annotated[
         str,
         __.ddoc.Doc( 'Unique identifier for rule (VBL code).' ) ]:
@@ -87,7 +85,7 @@ class BaseRule( __.libcst.CSTVisitor ):
         _ = original_node  # Required by LibCST interface
         self._analyze_collections( )
 
-    @_abstractmethod
+    @__.abc.abstractmethod
     def _analyze_collections( self ) -> None:
         ''' Analyzes collected data and generates violations.
 

@@ -52,13 +52,11 @@ class ContextExtractor:
         line = violation.line
         start_line = max( 1, line - context_size )
         end_line = min( len( self.source_lines ), line + context_size )
-
         # Extract context lines (convert to 0-indexed for array access)
         context_lines = tuple(
             self.source_lines[ i ]
             for i in range( start_line - 1, end_line )
         )
-
         return __.violations.ViolationContext(
             violation = violation,
             context_lines = context_lines,
@@ -82,14 +80,12 @@ class ContextExtractor:
         ''' Formats violation context for display. '''
         formatted_lines: list[ str ] = [ ]
         violation_line = context.violation.line
-
         for i, line in enumerate( context.context_lines ):
             line_number = context.context_start_line + i
             prefix = (
                 '→ ' if highlight_line and line_number == violation_line
                 else '  ' )
             formatted_lines.append( f'{line_number:4d}{prefix}{line}' )
-
         return tuple( formatted_lines )
 
 

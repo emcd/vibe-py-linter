@@ -19,15 +19,16 @@
 
 
 
-''' VBL101: Detect consecutive blank lines within function bodies.
+''' VBL101: Detect blank lines within function bodies.
 
 
 
     Category: Readability
     Subcategory: Compactness
 
-    This rule detects multiple consecutive blank lines within function or
-    method bodies and suggests their elimination to improve code compactness.
+    This rule detects any blank lines within function or method bodies and
+    suggests their elimination to improve vertical compactness per the
+    project coding standards.
 '''
 
 
@@ -36,7 +37,7 @@ from ..base import BaseRule
 
 
 class VBL101( BaseRule ):
-    ''' Detects consecutive blank lines within function bodies. '''
+    ''' Detects any blank lines within function bodies. '''
 
     @property
     def rule_id( self ) -> str:
@@ -47,10 +48,8 @@ class VBL101( BaseRule ):
         filename: str,
         wrapper: __.libcst.metadata.MetadataWrapper,
         source_lines: tuple[ str, ... ],
-        max_consecutive_blanks: int = 1,
     ) -> None:
         super( ).__init__( filename, wrapper, source_lines )
-        self.max_consecutive_blanks = max_consecutive_blanks
         # Collection: store function definitions and their line ranges
         self._function_ranges: list[
             tuple[ int, int, __.libcst.FunctionDef ] ] = [ ]
@@ -70,70 +69,24 @@ class VBL101( BaseRule ):
         return True  # Continue visiting children
 
     def _analyze_collections( self ) -> None:
-        ''' Analyzes collected functions for consecutive blank lines. '''
-        for start_line, end_line, func_node in self._function_ranges:
-            # Analyze blank lines within function body
-            # Skip function signature lines and focus on body
-            # Get function body start (after the def line and any decorators)
-            body_start = start_line + 1  # Start checking after the def line
-
-            # Track consecutive blank lines
-            consecutive_blanks = 0
-            blank_start_line = 0
-
+        ''' Analyzes collected functions for any blank lines. '''
+        for start_line, end_line, _func_node in self._function_ranges:
+            # Get function body start (after the def line)
+            body_start = start_line + 1
             for line_num in range( body_start, end_line + 1 ):
-                # Get the line (0-indexed access)
-                if line_num - 1 >= len( self.source_lines ):
-                    break
-
+                if line_num - 1 >= len( self.source_lines ): break
                 line = self.source_lines[ line_num - 1 ]
-
-                # Check if line is blank (empty or only whitespace)
+                # Report violation for any blank line
                 if not line.strip( ):
-                    if consecutive_blanks == 0:
-                        blank_start_line = line_num
-                    consecutive_blanks += 1
-                else:
-                    # Non-blank line found
-                    if consecutive_blanks > self.max_consecutive_blanks:
-                        # Report violation at excessive blank lines start
-                        self._report_consecutive_blanks(
-                            func_node,
-                            blank_start_line,
-                            consecutive_blanks
-                        )
-                    consecutive_blanks = 0
+                    self._report_blank_line( line_num )
 
-            # Check if function ends with excessive blank lines
-            if consecutive_blanks > self.max_consecutive_blanks:
-                self._report_consecutive_blanks(
-                    func_node,
-                    blank_start_line,
-                    consecutive_blanks
-                )
-
-    def _report_consecutive_blanks(
-        self,
-        func_node: __.libcst.FunctionDef,
-        line_num: int,
-        count: int
-    ) -> None:
-        ''' Reports a violation for consecutive blank lines. '''
-        excess_count = count - self.max_consecutive_blanks
-        message = (
-            f"Found {count} consecutive blank lines. "
-            f"Maximum: {self.max_consecutive_blanks}. "
-            f"Remove {excess_count} blank line(s)."
-        )
-
-        # Create violation manually with specific line number
-        # rather than using a node
+    def _report_blank_line( self, line_num: int ) -> None:
+        ''' Reports a violation for a blank line in function body. '''
         violation = __.violations.Violation(
             rule_id = self.rule_id,
             filename = self.filename,
             line = line_num,
-            column = 1,  # Blank lines start at column 1
-            message = message,
-            severity = 'warning',  # Use warning for style issues
-        )
+            column = 1,
+            message = "Blank line in function body.",
+            severity = 'warning' )
         self._violations.append( violation )

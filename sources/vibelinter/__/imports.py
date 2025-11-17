@@ -23,6 +23,7 @@
 # ruff: noqa: F401
 
 
+import abc
 import collections.abc as   cabc
 import contextlib as        ctxl
 import dataclasses as       dcls
