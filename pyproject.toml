@@ -376,7 +376,7 @@ ignore_decorators = [ '@__.abc.abstractmethod', '@__.typx.overload' ]
 ignore_names = [ 'main' ]
 
 [tool.vibelinter]
-select = ["VBL101"]
+select = ["VBL101", "VBL201"]
 context = 3
 exclude_paths = ["tests/**", ".venv/**"]
 
