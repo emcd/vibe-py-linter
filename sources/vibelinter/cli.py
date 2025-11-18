@@ -26,7 +26,9 @@
 from appcore import cli as _appcore_cli
 
 from . import __
+from . import configuration as _configuration
 from . import engine as _engine
+from . import rules as _rules
 
 
 class DiffFormats( __.enum.Enum ):
@@ -270,10 +272,12 @@ class CheckCommand( __.immut.DataclassObject ):
 
     async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the check command. '''
-        from . import rules as _rules
         # TODO: Implement parallel processing with jobs parameter
         _ = self.jobs  # Suppress vulture warning
+        config = _configuration.discover_configuration( )
         file_paths = _discover_python_files( self.paths )
+        if not __.is_absent( config ):
+            file_paths = _apply_path_filters( file_paths, config )
         if not file_paths:
             result = CheckResult(
                 paths = self.paths,
@@ -285,11 +289,19 @@ class CheckCommand( __.immut.DataclassObject ):
             async with __.ctxl.AsyncExitStack( ) as exits:
                 await _render_and_print_result( result, display, exits )
             return 0
-        enabled_rules = _parse_rule_selection( self.select )
+        enabled_rules = _merge_rule_selection( self.select, config )
+        context_size = _merge_context_size( display.context, config )
+        rule_parameters: __.immut.Dictionary[
+            str, __.immut.Dictionary[ str, __.typx.Any ] ]
+        if __.is_absent( config ):
+            rule_parameters = __.immut.Dictionary( )
+        else:
+            rule_parameters = config.rule_parameters
         configuration = _engine.EngineConfiguration(
             enabled_rules = enabled_rules,
-            context_size = display.context,
-            include_context = display.context > 0,
+            context_size = context_size,
+            include_context = context_size > 0,
+            rule_parameters = rule_parameters,
         )
         registry_manager = _rules.create_registry_manager( )
         engine = _engine.Engine( registry_manager, configuration )
@@ -572,14 +584,76 @@ def _discover_python_files(
     return tuple( sorted( set( python_files ) ) )
 
 
-def _parse_rule_selection(
-    selection: __.Absential[ str ]
+def _apply_path_filters(
+    file_paths: tuple[ __.pathlib.Path, ... ],
+    config: __.typx.Any,
+) -> tuple[ __.pathlib.Path, ... ]:
+    ''' Applies include/exclude path filters from configuration. '''
+    typed_config = __.typx.cast( _configuration.Configuration, config )
+    filtered = list( file_paths )
+    if not __.is_absent( typed_config.include_paths ):
+        filtered = [
+            fp for fp in filtered
+            if _matches_any_pattern( fp, typed_config.include_paths )
+        ]
+    if not __.is_absent( typed_config.exclude_paths ):
+        patterns = typed_config.exclude_paths
+        filtered = [
+            fp for fp in filtered
+            if not _matches_any_pattern( fp, patterns )
+        ]
+    return tuple( filtered )
+
+
+def _matches_any_pattern(
+    file_path: __.pathlib.Path,
+    patterns: tuple[ str, ... ],
+) -> bool:
+    ''' Checks if file path matches any glob pattern. '''
+    path_str = str( file_path )
+    for pattern in patterns:
+        if file_path.match( pattern ):
+            return True
+        if path_str.startswith( pattern ):
+            return True
+    return False
+
+
+def _merge_context_size(
+    cli_context: int,
+    config: __.Absential[ __.typx.Any ],
+) -> int:
+    ''' Merges context size from CLI and configuration. '''
+    if cli_context > 0:
+        return cli_context
+    if __.is_absent( config ):
+        return 0
+    typed_config = __.typx.cast( _configuration.Configuration, config )
+    if __.is_absent( typed_config.context ):
+        return 0
+    return typed_config.context
+
+
+def _merge_rule_selection(
+    cli_selection: __.Absential[ str ],
+    config: __.Absential[ __.typx.Any ],
 ) -> frozenset[ str ]:
-    ''' Parses comma-separated rule codes or returns all rules. '''
+    ''' Merges rule selection from CLI and configuration. '''
     from .rules.implementations.__ import RULE_DESCRIPTORS
-    if __.is_absent( selection ):
-        return frozenset( RULE_DESCRIPTORS.keys( ) )
-    return frozenset( code.strip( ) for code in selection.split( ',' ) )
+    all_rules = frozenset( RULE_DESCRIPTORS.keys( ) )
+    if not __.is_absent( cli_selection ):
+        codes = cli_selection.split( ',' )
+        return frozenset( code.strip( ) for code in codes )
+    if __.is_absent( config ):
+        return all_rules
+    typed_config = __.typx.cast( _configuration.Configuration, config )
+    if not __.is_absent( typed_config.select ):
+        selected = set( typed_config.select )
+    else:
+        selected = set( all_rules )
+    if not __.is_absent( typed_config.exclude_rules ):
+        selected -= set( typed_config.exclude_rules )
+    return frozenset( selected )
 
 
 async def _render_and_print_result(
