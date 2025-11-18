@@ -1,3 +1,22 @@
+.. vim: set fileencoding=utf-8:
+.. -*- coding: utf-8 -*-
+.. +--------------------------------------------------------------------------+
+   |                                                                          |
+   | Licensed under the Apache License, Version 2.0 (the "License");          |
+   | you may not use this file except in compliance with the License.         |
+   | You may obtain a copy of the License at                                  |
+   |                                                                          |
+   |     http://www.apache.org/licenses/LICENSE-2.0                           |
+   |                                                                          |
+   | Unless required by applicable law or agreed to in writing, software      |
+   | distributed under the License is distributed on an "AS IS" BASIS,        |
+   | WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. |
+   | See the License for the specific language governing permissions and      |
+   | limitations under the License.                                           |
+   |                                                                          |
+   +--------------------------------------------------------------------------+
+
+
 *******************************************************************************
 Test Organization Summary
 *******************************************************************************
@@ -9,7 +28,8 @@ Test Module Numbering Scheme
 ===============================================================================
 
 vibelinter follows a hierarchical numbering system where test modules are
-organized by architectural layer:
+organized by architectural layer, from lowest-level infrastructure to
+highest-level user interfaces:
 
 Module Number Assignments
 -------------------------------------------------------------------------------
@@ -26,18 +46,18 @@ Module Number Assignments
   * ``test_120_base.py`` - Base rule framework
   * ``test_130_registry.py`` - Rule registry and discovery
 
-* **200-299**: Rule implementations (subpackage)
+* **200-299**: Configuration and parsing
 
-  * ``test_210_rules_vbl101.py`` - VBL101 rule tests
-  * ``test_220_rules_vbl201.py`` - VBL201 import hub enforcement tests
+  * ``test_200_configuration.py`` - Configuration loading and validation
 
-* **300-399**: Configuration and parsing
+* **300-399**: Analysis engine
 
-  * ``test_300_configuration.py`` - Configuration loading and validation
+  * ``test_300_engine.py`` - Linting engine core functionality
 
-* **400-499**: Analysis engine
+* **400-499**: Rule implementations (subpackage)
 
-  * ``test_400_engine.py`` - Linting engine core functionality
+  * ``test_410_rules_vbl101.py`` - VBL101 rule tests
+  * ``test_420_rules_vbl201.py`` - VBL201 import hub enforcement tests
 
 * **500-599**: CLI interface
 
@@ -99,4 +119,5 @@ Updates Log
 ===============================================================================
 
 * 2025-11-18: Initial test organization document created
-* 2025-11-18: Planned VBL201 test module as ``test_220_rules_vbl201.py``
+* 2025-11-18: Planned VBL201 test module as ``test_420_rules_vbl201.py``
+* 2025-11-18: Adjusted test numbering to place rules (400-499) after configuration (200-299) and engine (300-399) to reflect architectural dependencies

@@ -83,7 +83,7 @@ Test snippets will be organized under ``tests/data/snippets/vbl201/``:
 Test Module Structure
 -------------------------------------------------------------------------------
 
-Test module: ``tests/test_000_vibelinter/test_220_rules_vbl201.py``
+Test module: ``tests/test_000_vibelinter/test_420_rules_vbl201.py``
 
 The test module will follow the standard numbering convention:
 
@@ -774,10 +774,11 @@ Performance Considerations
 Test Module Numbering
 -------------------------------------------------------------------------------
 
-* **Test module**: ``test_220_rules_vbl201.py``
+* **Test module**: ``test_420_rules_vbl201.py``
 
-  * Placed in 200-299 range for rule implementations
-  * Second rule in the suite (210 would be VBL101)
+  * Placed in 400-499 range for rule implementations
+  * Rules tested after configuration (200-299) and engine (300-399) to reflect architectural dependencies
+  * Second rule in the suite (410 would be VBL101)
   * Follows subpackage numbering convention
 
 Success Metrics
