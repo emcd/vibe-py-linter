@@ -75,7 +75,6 @@ Hub modules are identified by configurable glob patterns. Any file matching thes
 - `__init__.py` - Re-export modules
 - `__.py` - Single-file import hub
 - `__/imports.py` - Directory-based import hub
-- `__/*.py` - Any file under `__/` directory
 
 ### Examples
 
@@ -155,7 +154,7 @@ def _is_import_hub_module(self) -> bool:
     file_path = Path(self.filename)
 
     # Get hub patterns from rule configuration
-    # Default: ['__init__.py', '__.py', '__/imports.py', '__/*.py']
+    # Default: ['__init__.py', '__.py', '__/imports.py']
     hub_patterns = self._get_hub_patterns()
 
     for pattern in hub_patterns:
@@ -178,7 +177,6 @@ def _get_hub_patterns(self) -> list[str]:
         '__init__.py',
         '__.py',
         '__/imports.py',
-        '__/*.py',
     ])
 ```
 
@@ -335,7 +333,6 @@ class VBL201(BaseRule):
 - `__init__.py` - Exact filename match
 - `__.py` - Exact filename match
 - `__/imports.py` - Relative path match
-- `__/*.py` - Glob pattern matching any `.py` file under `__/` directory
 
 ### 2. Private Name Definition
 
@@ -404,7 +401,6 @@ hub_patterns = [
     "__init__.py",      # Re-export modules
     "__.py",            # Single-file import hub
     "__/imports.py",    # Directory-based import hub
-    "__/*.py",          # Any file under __/ directory
 ]
 ```
 
@@ -415,7 +411,7 @@ hub_patterns = [
 enabled = true
 severity = "warning"
 
-hub_patterns = ["__init__.py", "__.py", "__/imports.py", "__/*.py"]
+hub_patterns = ["__init__.py", "__.py", "__/imports.py"]
 
 # Future: Allow certain stdlib modules without hub
 allowed_modules = []
@@ -562,7 +558,7 @@ from typing import Any
 
 2. **Hub modules identified by configurable glob patterns**
    - **Decision**: Use file glob patterns, not hard-coded checks
-   - **Default patterns**: `__init__.py`, `__.py`, `__/imports.py`, `__/*.py`
+   - **Default patterns**: `__init__.py`, `__.py`, `__/imports.py`
    - **Rationale**: Projects may use different conventions; configuration allows flexibility
    - **Implementation**: Uses `Path.match()` for pattern matching
 
