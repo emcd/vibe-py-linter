@@ -63,16 +63,18 @@ These violations:
 
 **Allowed** (in non-hub modules):
 
-1. **Hub import**: `from . import __`
-2. **Relative imports**: `from . import exceptions`, `from .base import BaseRule`
-3. **Private aliases at module top**: `from json import loads as _json_loads`
+1. **Hub import**: `from . import __` (special case - importing the hub itself)
+2. **Relative imports with private aliases**: `from . import exceptions as _exceptions`, `from .base import BaseRule as _BaseRule`
+3. **Private aliases for any import**: `from json import loads as _json_loads`
 4. **Future imports**: `from __future__ import annotations`
 
-**Exceptions** (modules where violations are allowed):
+**Exceptions** (modules where all imports are allowed):
 
-1. **Import hub modules**: `sources/vibelinter/__/imports.py`, `sources/vibelinter/__/__init__.py`
-2. **Import hub submodules**: Any module under `__/` directory
-3. **Re-export modules**: `__init__.py` files that serve as public API boundaries
+1. **`__init__.py` files**: Re-export hubs that define public API
+2. **`__.py` files**: Single-file import hub pattern
+3. **`<package>/__/imports.py` files**: Directory-based import hub pattern
+
+**Note**: Hub module patterns should be configurable via rule parameters to support project-specific conventions.
 
 ### Examples
 
@@ -80,10 +82,14 @@ These violations:
 
 ```python
 # sources/vibelinter/cli.py
-from pathlib import Path          # VBL201: Use __.pathlib.Path
-import json                       # VBL201: Use __.json
-from typing import Any            # VBL201: Use __.typx.Any
-from requests import get          # VBL201: Should use hub or private alias
+from pathlib import Path          # VBL201: Use __.pathlib.Path or private alias
+import json                       # VBL201: Use __.json or private alias
+from typing import Any            # VBL201: Use __.typx.Any or private alias
+from requests import get          # VBL201: Use hub or private alias
+
+# Relative imports without private aliases are also violations:
+from . import exceptions          # VBL201: Use 'from . import exceptions as _exceptions'
+from .base import BaseRule        # VBL201: Use 'from .base import BaseRule as _BaseRule'
 ```
 
 #### ✅ Correct Usage
@@ -92,24 +98,32 @@ from requests import get          # VBL201: Should use hub or private alias
 # sources/vibelinter/cli.py
 from __future__ import annotations  # OK: future import
 
-from json import loads as _json_loads  # OK: private alias at top
+from json import loads as _json_loads  # OK: private alias
 
-from . import __                    # OK: hub import
-from . import exceptions           # OK: relative import
-from .base import BaseRule         # OK: relative import
+from . import __                       # OK: hub import (special case)
+from . import exceptions as _exceptions  # OK: relative import with private alias
+from .base import BaseRule as _BaseRule  # OK: relative import with private alias
 
 # Later in code:
 path = __.pathlib.Path('foo')      # Using hub
 data = _json_loads(content)        # Using private alias
+error = _exceptions.LinterError()  # Using private relative import
 ```
 
 #### ✅ Exception: Hub Modules
 
 ```python
-# sources/vibelinter/__/imports.py - This IS a hub
+# Pattern 1: sources/vibelinter/__/imports.py
 from pathlib import Path           # OK: hub module
 import json                        # OK: hub module
 from typing import Any             # OK: hub module
+
+# Pattern 2: sources/vibelinter/__.py
+from pathlib import Path           # OK: hub module (single-file pattern)
+
+# Pattern 3: sources/vibelinter/__init__.py
+from .engine import LinterEngine   # OK: re-export module
+from .cli import main              # OK: re-export module
 ```
 
 ## Implementation Design
@@ -124,14 +138,40 @@ from typing import Any             # OK: hub module
 
 #### Module Classification
 
-Determine if a module is an import hub:
+Determine if a module is an import hub based on configurable patterns:
 
 ```python
 def _is_import_hub_module(self) -> bool:
-    """Check if current file is an import hub module."""
-    # Hub modules are under __/ directory
-    path_parts = Path(self.filename).parts
-    return '__' in path_parts
+    """Check if current file is an import hub module.
+
+    Hub modules match one of these patterns (configurable):
+    1. __init__.py (re-export hubs)
+    2. __.py (single-file import hub)
+    3. <package>/__/imports.py (directory-based import hub)
+    """
+    file_path = Path(self.filename)
+    filename = file_path.name
+
+    # Pattern 1: __init__.py files
+    if filename == '__init__.py':
+        return True
+
+    # Pattern 2: __.py files
+    if filename == '__.py':
+        return True
+
+    # Pattern 3: __/imports.py or any file under __/ directory
+    path_parts = file_path.parts
+    if '__' in path_parts:
+        # Check if it's specifically __/imports.py or any __/ submodule
+        try:
+            idx = path_parts.index('__')
+            # If '__' appears in path, it's a hub module
+            return True
+        except ValueError:
+            pass
+
+    return False
 ```
 
 #### Import Statement Analysis
@@ -174,7 +214,7 @@ def visit_ImportFrom(self, node: libcst.ImportFrom) -> bool:
     # Check for allowed patterns
     if self._is_future_import(node):
         return True
-    if self._is_relative_import(node):
+    if self._is_allowed_relative_import(node):
         return True
     if self._is_private_alias_import(node):
         return True
@@ -194,9 +234,49 @@ def _is_future_import(self, node: libcst.ImportFrom) -> bool:
         return False
     return module and module.value == '__future__'
 
-def _is_relative_import(self, node: libcst.ImportFrom) -> bool:
-    """Check if import is a relative import (from .)."""
-    return node.relative and len(node.relative) > 0
+def _is_hub_import(self, node: libcst.ImportFrom) -> bool:
+    """Check if import is the hub import itself (from . import __).
+
+    This is a special case that is always allowed.
+    """
+    # Must be a simple relative import (from .)
+    if not node.relative or len(node.relative) != 1:
+        return False
+
+    # Module should be None or empty (from . import X, not from .module import X)
+    if node.module is not None:
+        return False
+
+    # Check if importing '__'
+    if isinstance(node.names, libcst.ImportStar):
+        return False
+
+    # Should import exactly '__' (may or may not be aliased)
+    for name in node.names:
+        original_name = name.name.value
+        if original_name == '__':
+            return True
+
+    return False
+
+def _is_allowed_relative_import(self, node: libcst.ImportFrom) -> bool:
+    """Check if import is an allowed relative import.
+
+    Allowed cases:
+    1. from . import __  (hub import - special case)
+    2. from . import foo as _foo  (private alias)
+    3. from .module import name as _name  (private alias)
+    """
+    # Must be a relative import
+    if not node.relative or len(node.relative) == 0:
+        return False
+
+    # Special case: from . import __
+    if self._is_hub_import(node):
+        return True
+
+    # Otherwise, must use private aliases
+    return self._is_private_alias_import(node)
 
 def _is_private_alias_import(self, node: libcst.ImportFrom) -> bool:
     """Check if all imported names use private aliases (_name)."""
@@ -269,27 +349,28 @@ class VBL201(BaseRule):
 
 ## Edge Cases and Special Handling
 
-### 1. `__init__.py` Files
+### 1. Hub Import Special Case
 
-**Decision**: `__init__.py` files may act as re-export hubs.
+**Decision**: The hub import itself (`from . import __`) is always allowed, even though it's a relative import without a private alias.
 
-**Implementation**: Check if `__init__.py` is under a public package directory:
+**Implementation**: Detect this specific pattern in `_is_hub_import()` and allow it as a special case.
 
-```python
-def _is_reexport_module(self) -> bool:
-    """Check if this is a re-export __init__.py."""
-    return Path(self.filename).name == '__init__.py'
-```
+### 2. Hub Module Patterns
 
-If `_is_reexport_module` returns True, apply relaxed rules or skip enforcement.
+**Decision**: Three patterns identify hub modules (all configurable):
+- `__init__.py` files (re-export hubs)
+- `__.py` files (single-file import hub)
+- Files under `__/` directory (directory-based import hub)
 
-### 2. Test Files
+**Implementation**: Check file path against configured patterns in `_is_import_hub_module()`.
+
+### 3. Test Files
 
 **Decision**: Initial implementation will enforce the same rules for test files.
 
 **Future**: May add configuration option to relax rules for test files if needed.
 
-### 3. Multiple Imports Per Statement
+### 4. Multiple Imports Per Statement
 
 ```python
 from typing import Any, Dict, List  # All should be flagged
@@ -297,7 +378,7 @@ from typing import Any, Dict, List  # All should be flagged
 
 **Implementation**: Iterate through all names in the import and generate appropriate messages.
 
-### 4. Star Imports
+### 5. Star Imports
 
 ```python
 from typing import *  # Should be flagged
@@ -305,7 +386,7 @@ from typing import *  # Should be flagged
 
 **Implementation**: Detect `ImportStar` and report violation (this overlaps with potential VBL202).
 
-### 5. Import Aliases Without Privacy
+### 6. Import Aliases Without Privacy
 
 ```python
 from pathlib import Path as P  # Public alias, should be flagged
@@ -314,7 +395,7 @@ from pathlib import Path as _Path  # Private alias, OK
 
 **Implementation**: Check alias name prefix in `_is_private_alias_import`.
 
-### 6. Conditional Imports
+### 7. Conditional Imports
 
 ```python
 if TYPE_CHECKING:
@@ -331,6 +412,15 @@ if TYPE_CHECKING:
 [tool.vibelinter.rules.VBL201]
 enabled = true
 severity = "warning"
+
+# Hub module patterns (configurable)
+# These patterns identify modules that are exempt from import restrictions
+hub_patterns = [
+    "__init__.py",      # Re-export modules
+    "__.py",            # Single-file import hub
+    "__/imports.py",    # Directory-based import hub
+    "__/*.py",          # Any file under __/ directory
+]
 ```
 
 ### Future Configuration Options
@@ -339,6 +429,8 @@ severity = "warning"
 [tool.vibelinter.rules.VBL201]
 enabled = true
 severity = "warning"
+
+hub_patterns = ["__init__.py", "__.py", "__/imports.py", "__/*.py"]
 
 # Future: Allow certain stdlib modules without hub
 allowed_modules = []
@@ -386,10 +478,17 @@ from . import __
 """
 # Expected: 0 violations
 
-# Test 4: Allowed relative import
+# Test 4: Relative imports - violations without private aliases
 """
 from . import exceptions
 from .base import BaseRule
+"""
+# Expected: 2 violations
+
+# Test 4b: Allowed relative imports with private aliases
+"""
+from . import exceptions as _exceptions
+from .base import BaseRule as _BaseRule
 """
 # Expected: 0 violations
 
@@ -412,20 +511,30 @@ import json
 from __future__ import annotations
 from json import loads as _json_loads
 from . import __
+from . import exceptions  # Violation: no private alias
 from pathlib import Path  # Violation
 """
-# Expected: 1 violation
+# Expected: 2 violations
+
+# Test 8: Hub module with all patterns
+"""
+# File: sources/vibelinter/__init__.py
+from .engine import LinterEngine
+from typing import Any
+"""
+# Expected: 0 violations (all imports allowed in hub modules)
 ```
 
 ## Implementation Checklist
 
 - [ ] Create `sources/vibelinter/rules/implementations/vbl201.py`
 - [ ] Implement `VBL201` class inheriting from `BaseRule`
-- [ ] Implement `_is_import_hub_module()` helper
+- [ ] Implement `_is_import_hub_module()` helper (with configurable patterns)
 - [ ] Implement `visit_Import()` for simple imports
 - [ ] Implement `visit_ImportFrom()` for from imports
 - [ ] Implement `_is_future_import()` helper
-- [ ] Implement `_is_relative_import()` helper
+- [ ] Implement `_is_hub_import()` helper (special case for `from . import __`)
+- [ ] Implement `_is_allowed_relative_import()` helper
 - [ ] Implement `_is_private_alias_import()` helper
 - [ ] Implement `_analyze_collections()` for violation generation
 - [ ] Self-register rule in `RULE_DESCRIPTORS`
@@ -458,23 +567,36 @@ from pathlib import Path  # Violation
 - **Example implementation**: `sources/vibelinter/rules/implementations/vbl101.py`
 - **Architecture**: `documentation/architecture/summary.rst`
 
-## Open Questions
+## Design Decisions and Rationale
 
-1. **Should `__init__.py` files be exempt?**
-   - Initial answer: Only if they're re-export modules (under `__/`)
-   - Can be refined based on usage patterns
+1. **`__init__.py` files are hub modules**
+   - **Decision**: All `__init__.py` files are exempt (they're re-export hubs)
+   - **Rationale**: They define the public API and need to import from submodules
+   - **Configurable**: Yes, via `hub_patterns` configuration
 
-2. **How to handle TYPE_CHECKING imports?**
-   - Initial answer: Flag as violations
-   - Future enhancement: Add configuration option to allow
+2. **Relative imports require private aliases**
+   - **Decision**: `from . import foo` is a violation; must use `from . import foo as _foo`
+   - **Exception**: `from . import __` is always allowed (hub import)
+   - **Rationale**: Maintains namespace cleanliness and consistency
 
-3. **Should test files have relaxed rules?**
-   - Initial answer: No, enforce consistently
-   - Future enhancement: Add configuration option if needed
+3. **Hub module patterns are configurable**
+   - **Decision**: Support three patterns by default: `__init__.py`, `__.py`, `__/imports.py`
+   - **Rationale**: Different projects may use different import hub conventions
+   - **Configuration**: Via `hub_patterns` list in rule parameters
 
-4. **What about scripts (e.g., `__main__.py`)?**
-   - Initial answer: Enforce the same rules
-   - Reasoning: Consistency across codebase
+4. **TYPE_CHECKING imports**
+   - **Initial decision**: Flag as violations
+   - **Future enhancement**: Add configuration option to allow
+   - **Rationale**: Start strict, relax if needed based on usage
+
+5. **Test files**
+   - **Initial decision**: Enforce consistently
+   - **Future enhancement**: Add configuration option if needed
+   - **Rationale**: Tests should follow the same patterns as production code
+
+6. **Scripts (e.g., `__main__.py`)**
+   - **Decision**: Enforce the same rules
+   - **Rationale**: Consistency across codebase
 
 ## Implementation Notes
 
@@ -511,5 +633,11 @@ else:
 
 ## Revision History
 
-- **2025-11-18**: Initial design document created
-- **Future**: Updates as implementation progresses
+- **2025-11-18 (v1)**: Initial design document created
+- **2025-11-18 (v2)**: Updated with corrected understanding:
+  - Relative imports require private aliases (except `from . import __`)
+  - Hub module patterns clarified: `__init__.py`, `__.py`, `__/imports.py`
+  - Added configurable `hub_patterns` parameter
+  - Updated examples and test cases to reflect corrections
+  - Renamed `_is_relative_import` to `_is_allowed_relative_import`
+  - Added `_is_hub_import` helper for special case detection
