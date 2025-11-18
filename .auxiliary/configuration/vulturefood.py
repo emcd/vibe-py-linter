@@ -51,6 +51,8 @@ _ = ContextExtractor.format_context_display
 _ = VBL101.visit_FunctionDef
 
 # VBL201 visitor methods
+_ = VBL201.visit_FunctionDef
+_ = VBL201.leave_FunctionDef
 _ = VBL201.visit_Import
 _ = VBL201.visit_ImportFrom
 

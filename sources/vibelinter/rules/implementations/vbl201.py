@@ -61,20 +61,39 @@ class VBL201( __.BaseRule ):
             else ( '__init__.py', '__.py', '__/imports.py' ) )
         # Determine if this file is a hub module
         self._is_hub_module: bool = self._is_import_hub_module( )
+        # Track function nesting depth (to allow local imports)
+        self._function_depth: int = 0
         # Collections for violations
         self._simple_imports: list[ __.libcst.Import ] = [ ]
         self._from_imports: list[ __.libcst.ImportFrom ] = [ ]
 
+    def visit_FunctionDef( self, node: __.libcst.FunctionDef ) -> bool:
+        ''' Tracks entry into function definitions. '''
+        self._function_depth += 1
+        return True
+
+    def leave_FunctionDef(
+        self, original_node: __.libcst.FunctionDef
+    ) -> None:
+        ''' Tracks exit from function definitions. '''
+        self._function_depth -= 1
+
     def visit_Import( self, node: __.libcst.Import ) -> bool:
-        ''' Collects simple import statements (import foo). '''
+        ''' Collects module-level simple import statements (import foo). '''
         if self._is_hub_module:
+            return True
+        # Allow imports inside function bodies (local imports)
+        if self._function_depth > 0:
             return True
         self._simple_imports.append( node )
         return True
 
     def visit_ImportFrom( self, node: __.libcst.ImportFrom ) -> bool:
-        ''' Collects from import statements (from foo import bar). '''
+        ''' Collects module-level from imports (from foo import bar). '''
         if self._is_hub_module:
+            return True
+        # Allow imports inside function bodies (local imports)
+        if self._function_depth > 0:
             return True
         if self._is_future_import( node ):
             return True
