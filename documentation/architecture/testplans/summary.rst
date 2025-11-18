@@ -21,66 +21,103 @@
 Test Organization Summary
 *******************************************************************************
 
-Overview
-===============================================================================
-
-This section contains comprehensive test planning documentation, including test
-organization conventions, coverage strategies, and detailed implementation
-plans for achieving systematic test coverage.
-
-Test plans follow project testing principles described in the `common test
-development guidelines
-<https://raw.githubusercontent.com/emcd/python-project-common/refs/tags/docs-1/documentation/common/tests.rst>`_.
-Key principles include:
-
-- **Dependency injection over monkey-patching** for testable code architecture
-- **Systematic coverage analysis** with clear gap identification
-- **Performance-conscious resource use** with appropriate testing strategies
-- **Organized test structure** with numbered modules and functions
-
-Test Planning Process
-===============================================================================
-
-The test planning process systematically addresses:
-
-**Coverage Gap Analysis**
-  Identification of all uncovered lines and untested functionality across modules
-
-**Test Strategy Development**  
-  Comprehensive approaches for testing each function, class, and method with
-  appropriate test data strategies
-
-**Implementation Guidance**
-  Detailed plans for achieving coverage while following project testing principles
-
-**Architectural Considerations**
-  Analysis of testability constraints and recommendations for maintaining
-  clean, testable code
+This document describes the test module numbering scheme and organization
+conventions specific to this project.
 
 Test Module Numbering Scheme
 ===============================================================================
 
-.. todo:: Define project-specific test module numbering conventions.
+This project follows a hierarchical numbering system where test modules are
+organized by architectural layer, from lowest-level infrastructure to
+highest-level user interfaces:
+
+Module Number Assignments
+-------------------------------------------------------------------------------
+
+* **000-099**: Package internals and utilities
+
+  * ``test_000_package.py`` - Package-level sanity checks
+  * ``test_010_base.py`` - Internal utilities and common imports
+
+* **100-199**: Core rule infrastructure
+
+  * ``test_100_violations.py`` - Violation data structures
+  * ``test_110_context.py`` - Rule context management
+  * ``test_120_base.py`` - Base rule framework
+  * ``test_130_registry.py`` - Rule registry and discovery
+
+* **200-299**: Configuration and parsing
+
+  * ``test_200_configuration.py`` - Configuration loading and validation
+
+* **300-399**: Analysis engine
+
+  * ``test_300_engine.py`` - Linting engine core functionality
+
+* **400-499**: Rule implementations (subpackage)
+
+  * ``test_410_rules_vbl101.py`` - VBL101 rule tests
+  * ``test_420_rules_vbl201.py`` - VBL201 import hub enforcement tests
+
+* **500-599**: CLI interface
+
+  * ``test_500_cli.py`` - Command-line interface
 
 Test Function Numbering
 ===============================================================================
 
-Within each test module, functions are numbered by component:
+Within each test module, test functions use a separate numbering scheme:
 
-- **000-099**: Basic functionality tests for the module  
-- **100-199, 200-299, etc.**: Each function/class gets its own 100-number block
-- **Increments of 10-20**: For closely related test variations within a block
+* **000-099**: Basic functionality tests
+* **100-199**: First component/feature tests
+* **200-299**: Second component/feature tests
+* **300-399**: Third component/feature tests
+* And so on...
 
-Project-Specific Testing Conventions
+Related tests within a component block can be separated by 10 or 20 for
+logical grouping.
+
+Project-Specific Conventions
 ===============================================================================
 
-For detailed testing conventions, patterns, and guidelines, refer to the `common
-test development guidelines
-<https://raw.githubusercontent.com/emcd/python-project-common/refs/tags/docs-1/documentation/common/tests.rst>`_.
-This includes:
+Test Data Organization
+-------------------------------------------------------------------------------
 
-- Coverage goals and strategies
-- Performance considerations
-- Test data organization patterns
-- Dependency injection approaches
-- Resource management during testing
+Test data is organized under ``tests/data/`` with the following structure:
+
+* ``tests/data/snippets/`` - Python code snippets for rule testing
+
+  * ``valid/`` - Valid code that should not trigger violations
+  * ``invalid/`` - Invalid code that should trigger violations
+  * Each snippet is a minimal, focused example
+
+Fixtures and Utilities
+-------------------------------------------------------------------------------
+
+Common fixtures are defined in:
+
+* ``tests/test_000_vibelinter/fixtures.py`` - Shared fixtures
+* ``tests/test_000_vibelinter/__.py`` - Common test utilities
+
+Rule Testing Pattern
+-------------------------------------------------------------------------------
+
+Rules are tested using a consistent pattern:
+
+1. **Basic functionality** (000-099): Rule instantiation, basic detection
+2. **Positive cases** (100-199): Valid code that should pass
+3. **Negative cases** (200-299): Invalid code that should fail
+4. **Edge cases** (300-399): Boundary conditions, complex scenarios
+5. **Configuration** (400-499): Configuration parsing and defaults
+
+Rationale for Exceptions
+===============================================================================
+
+Currently, no exceptions to standard testing patterns are required.
+
+Updates Log
+===============================================================================
+
+* 2025-11-18: Initial test organization document created
+* 2025-11-18: Planned VBL201 test module as ``test_420_rules_vbl201.py``
+* 2025-11-18: Adjusted test numbering to place rules (400-499) after configuration (200-299) and engine (300-399) to reflect architectural dependencies
