@@ -6,10 +6,22 @@
 
 ### 1. Install System Packages
 
-Install GitHub CLI from the latest release (ensures latest version instead of older Ubuntu package):
+Install GitHub CLI from the latest release (ensures latest version instead of older Ubuntu package).
+
+First, get the latest version number:
 
 ```bash
-GH_VERSION=$(wget https://github.com/cli/cli/releases/latest -O - 2>&1 | grep -oP 'href="/cli/cli/releases/tag/v\K[0-9.]+' | head -1) && wget -O /tmp/gh_${GH_VERSION}_linux_amd64.deb https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.deb && dpkg -i /tmp/gh_${GH_VERSION}_linux_amd64.deb
+wget https://github.com/cli/cli/releases/latest -O - 2>&1 | grep -oP 'href="/cli/cli/releases/tag/v\K[0-9.]+' | head -1
+```
+
+Then download and install, substituting the version number from above:
+
+```bash
+wget -O /tmp/gh_VERSION_linux_amd64.deb https://github.com/cli/cli/releases/download/vVERSION/gh_VERSION_linux_amd64.deb
+```
+
+```bash
+dpkg -i /tmp/gh_VERSION_linux_amd64.deb
 ```
 
 ### 2. Install Core Python Tools
@@ -78,21 +90,6 @@ Copy the bash-tool-bypass script to PATH for accessing restricted commands:
 ```bash
 cp .auxiliary/configuration/coders/claude/miscellany/bash-tool-bypass ~/.local/bin/
 chmod +x ~/.local/bin/bash-tool-bypass
-```
-
-### 7. Verify Installation
-
-Check that all required tools are available:
-
-```bash
-which mcp-language-server
-which pyright
-which ruff
-which bash-tool-bypass
-hatch --version
-copier --version
-agentsmgr --version
-bash-tool-bypass gh --version
 ```
 
 ## Notes
