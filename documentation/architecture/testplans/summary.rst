@@ -22,12 +22,12 @@ Test Organization Summary
 *******************************************************************************
 
 This document describes the test module numbering scheme and organization
-conventions specific to the vibelinter project.
+conventions specific to this project.
 
 Test Module Numbering Scheme
 ===============================================================================
 
-vibelinter follows a hierarchical numbering system where test modules are
+This project follows a hierarchical numbering system where test modules are
 organized by architectural layer, from lowest-level infrastructure to
 highest-level user interfaces:
 
