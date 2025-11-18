@@ -30,6 +30,7 @@ from vibelinter.exceptions import RuleConfigureFailure
 from vibelinter.rules.base import BaseRule
 from vibelinter.rules.context import ContextExtractor
 from vibelinter.rules.implementations.vbl101 import VBL101
+from vibelinter.rules.implementations.vbl201 import VBL201
 from vibelinter.rules.registry import (
     RuleClassFactory,
     RuleDescriptor,
@@ -48,6 +49,12 @@ _ = ContextExtractor.format_context_display
 
 # VBL101 visitor methods
 _ = VBL101.visit_FunctionDef
+
+# VBL201 visitor methods
+_ = VBL201.visit_FunctionDef
+_ = VBL201.leave_FunctionDef
+_ = VBL201.visit_Import
+_ = VBL201.visit_ImportFrom
 
 # Registry manager methods
 _ = RuleRegistryManager.resolve_rule_identifier
