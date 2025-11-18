@@ -793,7 +793,7 @@ Coverage Goals
 * All violation paths exercised
 * All edge cases tested
 
-Test Count Estimate
+Test Count
 -------------------------------------------------------------------------------
 
 * Basic functionality: 5 tests
@@ -804,7 +804,7 @@ Test Count Estimate
 * Configuration: 3 tests
 * Violation reporting: 5 tests
 
-**Total**: ~42 tests planned
+**Total**: ~42 tests
 
 Validation Criteria
 -------------------------------------------------------------------------------
@@ -866,44 +866,3 @@ Priority and Implementation Order
 
 6. Edge cases (400-499) - Robustness
 7. Configuration (500-599) - Flexibility
-
-**Estimated effort**: 4-6 hours for full implementation and validation.
-
-Next Steps
-===============================================================================
-
-1. **Create test fixtures**
-
-   * ``create_rule_wrapper()`` helper
-   * ``run_vbl201()`` helper
-   * Any shared test data setup
-
-2. **Implement basic tests** (000-099)
-
-   * Validate test infrastructure works
-   * Ensure rule instantiates correctly
-
-3. **Implement valid import tests** (200-299)
-
-   * Ensure no false positives
-   * Cover all allowed patterns
-
-4. **Implement invalid import tests** (300-399)
-
-   * Ensure violations are detected
-   * Validate violation messages
-
-5. **Complete remaining test categories**
-
-   * Hub detection, edge cases, configuration
-
-6. **Validate coverage**
-
-   * Run coverage report
-   * Ensure 100% line and branch coverage
-   * Add any missing tests
-
-7. **Performance check**
-
-   * Ensure test suite runs in < 500ms
-   * Optimize if needed
