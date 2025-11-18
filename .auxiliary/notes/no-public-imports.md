@@ -73,6 +73,7 @@ These violations:
 
 Hub modules are identified by configurable glob patterns. Any file matching these patterns is exempt from import restrictions. Default patterns:
 - `__init__.py` - Re-export modules
+- `__main__.py` - Entry point modules
 - `__.py` - Single-file import hub
 - `__/imports.py` - Directory-based import hub
 
@@ -154,7 +155,7 @@ def _is_import_hub_module(self) -> bool:
     file_path = Path(self.filename)
 
     # Get hub patterns from rule configuration
-    # Default: ['__init__.py', '__.py', '__/imports.py']
+    # Default: ['__init__.py', '__main__.py', '__.py', '__/imports.py']
     hub_patterns = self._get_hub_patterns()
 
     for pattern in hub_patterns:
@@ -175,6 +176,7 @@ def _get_hub_patterns(self) -> list[str]:
     # Default patterns if not configured
     return getattr(self, '_hub_patterns', [
         '__init__.py',
+        '__main__.py',
         '__.py',
         '__/imports.py',
     ])
@@ -330,9 +332,10 @@ class VBL201(BaseRule):
 **Implementation**: Use `Path.match()` to check if the current file matches any pattern in the `hub_patterns` configuration list. Supports standard glob syntax like `*.py`, `__/*.py`, etc.
 
 **Default patterns**:
-- `__init__.py` - Exact filename match
-- `__.py` - Exact filename match
-- `__/imports.py` - Relative path match
+- `__init__.py` - Exact filename match (re-export modules)
+- `__main__.py` - Exact filename match (entry point modules)
+- `__.py` - Exact filename match (single-file import hub)
+- `__/imports.py` - Relative path match (directory-based import hub)
 
 ### 2. Private Name Definition
 
@@ -399,6 +402,7 @@ severity = "warning"
 # These patterns identify modules that are exempt from import restrictions
 hub_patterns = [
     "__init__.py",      # Re-export modules
+    "__main__.py",      # Entry point modules
     "__.py",            # Single-file import hub
     "__/imports.py",    # Directory-based import hub
 ]
@@ -411,7 +415,7 @@ hub_patterns = [
 enabled = true
 severity = "warning"
 
-hub_patterns = ["__init__.py", "__.py", "__/imports.py"]
+hub_patterns = ["__init__.py", "__main__.py", "__.py", "__/imports.py"]
 
 # Future: Allow certain stdlib modules without hub
 allowed_modules = []
@@ -558,9 +562,10 @@ from typing import Any
 
 2. **Hub modules identified by configurable glob patterns**
    - **Decision**: Use file glob patterns, not hard-coded checks
-   - **Default patterns**: `__init__.py`, `__.py`, `__/imports.py`
+   - **Default patterns**: `__init__.py`, `__main__.py`, `__.py`, `__/imports.py`
    - **Rationale**: Projects may use different conventions; configuration allows flexibility
    - **Implementation**: Uses `Path.match()` for pattern matching
+   - **Entry points**: `__main__.py` treated as hub module since they serve as module boundaries
 
 3. **All imports must result in private names (in non-hub modules)**
    - **Decision**: Any import that brings a public name into module namespace is a violation

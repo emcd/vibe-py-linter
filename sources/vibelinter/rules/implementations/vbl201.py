@@ -58,7 +58,7 @@ class VBL201( __.BaseRule ):
         # Store hub patterns from configuration or use defaults
         self._hub_patterns: tuple[ str, ... ] = (
             hub_patterns if not __.is_absent( hub_patterns )
-            else ( '__init__.py', '__.py', '__/imports.py' ) )
+            else ( '__init__.py', '__main__.py', '__.py', '__/imports.py' ) )
         # Determine if this file is a hub module
         self._is_hub_module: bool = self._is_import_hub_module( )
         # Track function nesting depth (to allow local imports)
