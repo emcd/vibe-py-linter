@@ -44,6 +44,10 @@
 from . import __
 
 
+# Maximum allowed relative import depth
+_MAX_RELATIVE_IMPORT_DEPTH = 2
+
+
 class VBL202( __.BaseRule ):
     ''' Enforces restrictions on relative import depth. '''
 
@@ -73,19 +77,15 @@ class VBL202( __.BaseRule ):
         ''' Collects relative import statements with parent references. '''
         # Calculate the relative import depth
         depth = self._calculate_relative_depth( node )
-
         if depth == 0:
             # Not a relative import, no violation
             return True
-
-        if depth > 2:
+        if depth > _MAX_RELATIVE_IMPORT_DEPTH:
             # More than 2 levels is always a violation
             self._excessive_depth_imports.append( node )
-        elif depth == 2:
+        elif depth == _MAX_RELATIVE_IMPORT_DEPTH and not self._is_reexport_hub:
             # Exactly 2 levels is only allowed in re-export hubs
-            if not self._is_reexport_hub:
-                self._two_level_imports.append( node )
-
+            self._two_level_imports.append( node )
         return True
 
     def _analyze_collections( self ) -> None:
@@ -136,7 +136,7 @@ class VBL202( __.BaseRule ):
         dots = '.' * depth
         message = (
             f"Excessive relative import depth ({depth} levels): '{dots}'. "
-            f"Maximum allowed depth is 2 levels."
+            f"Maximum allowed depth is {_MAX_RELATIVE_IMPORT_DEPTH} levels."
         )
         self._produce_violation( node, message, severity = 'error' )
 
@@ -144,9 +144,10 @@ class VBL202( __.BaseRule ):
         self, node: __.libcst.ImportFrom
     ) -> None:
         ''' Reports violation for 2-level import outside re-export hub. '''
+        patterns_str = ', '.join( self._reexport_hub_patterns )
         message = (
             "Two-level relative import ('from .. import') is only allowed "
-            f"in re-export hub modules ({', '.join(self._reexport_hub_patterns)}). "
+            f"in re-export hub modules ({patterns_str}). "
             "Move this import to a re-export hub or reduce import depth."
         )
         self._produce_violation( node, message, severity = 'warning' )
