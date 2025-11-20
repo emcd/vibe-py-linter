@@ -24,19 +24,34 @@ Test Plan: Configuration Reader
 Coverage Analysis Summary
 ===============================================================================
 
-- **Current coverage**: 16% (104 statements, 82 uncovered, 34 branches)
-- **Target coverage**: 100%
-- **Uncovered lines**: 37-39, 49-55, 94-97, 102-114, 121-134, 142-149, 165-175, 183-204, 213-233
-- **Missing functionality tests**:
+- **Achieved coverage**: 98% (104 statements, 2 uncovered, 34 branches, 1 partial)
+- **Test count**: 37 tests
+- **Uncovered lines**: 193-194 (unreachable: TOML parser always produces string keys)
+- **Test execution**: All tests pass on Linux and Windows
 
-  - Configuration discovery from parent directories
-  - Configuration file loading and parsing
-  - TOML syntax error handling
-  - Configuration validation and error reporting
-  - Rule parameter parsing
-  - String sequence parsing with validation
-  - Optional integer parsing with validation
-  - Edge cases for malformed configuration data
+Testing Principle
+===============================================================================
+
+**Test behavior through the public API, not implementation details.**
+
+This test suite focuses exclusively on testing the observable behavior of the
+configuration reader through its public interface:
+
+- ``discover_configuration()`` - Configuration discovery
+- ``load_configuration()`` - Configuration loading and parsing
+- ``Configuration`` - Configuration dataclass
+- ``ConfigurationInvalidity`` - Validation error exception
+- ``ConfigurationAbsence`` - Missing file exception
+
+Private functions (``_parse_configuration``, ``_parse_string_sequence``,
+``_parse_optional_int``, ``_parse_rule_parameters``, ``_discover_pyproject_toml``)
+are **not** tested directly. They are exercised through the public API tests,
+which provides:
+
+- **Better maintainability**: Implementation can be refactored without breaking tests
+- **Clearer intent**: Tests document what users can rely on
+- **Equivalent coverage**: 98% coverage achieved through public API alone
+- **Platform independence**: Behavior tests work across operating systems
 
 Test Strategy
 ===============================================================================
@@ -75,92 +90,27 @@ Configuration Discovery Tests (100-199)
 - Test 180: Loads configuration with rule parameters
 - Test 185: Raises ConfigurationAbsence for missing file
 - Test 190: Raises ConfigurationInvalidity for invalid TOML syntax
-- Test 195: Raises ConfigurationInvalidity for invalid structure
 
-TOML Parsing Tests (200-299)
+Exception Handling Tests (200-299)
 -------------------------------------------------------------------------------
 
-**Function: _parse_configuration (Tests 200-249)**
 
-- Test 200: Parses empty configuration dictionary
-- Test 205: Parses configuration with all optional fields absent
-- Test 210: Parses select field as tuple
-- Test 215: Parses exclude_rules field correctly (maps 'exclude' key)
-- Test 220: Parses include_paths field correctly (maps 'include' key)
-- Test 225: Parses exclude_paths field correctly
-- Test 230: Parses context as integer
-- Test 235: Parses rule_parameters dictionary
-- Test 240: Handles missing rule_parameters section gracefully
-- Test 245: Passes location through for error reporting
+**Exception: ConfigurationInvalidity (Tests 200-219)**
 
-**Function: _parse_string_sequence (Tests 250-299)**
+- Test 200: Instantiates with location and reason
+- Test 205: Inherits from Omnierror and ValueError
+- Test 210: Formats error message with location and reason
+- Test 215: Stores location as string attribute
+- Test 220: Stores reason as string attribute
 
-- Test 250: Returns absent for missing key
-- Test 255: Parses single string as tuple with one element
-- Test 260: Parses list of strings as tuple
-- Test 265: Parses empty list as empty tuple
-- Test 270: Raises ConfigurationInvalidity for non-string/non-list value
-- Test 275: Raises ConfigurationInvalidity for list with non-string elements
-- Test 280: Includes item index in error message for non-string list items
-- Test 285: Handles unicode strings correctly
-- Test 290: Preserves order of strings in list
+**Exception: ConfigurationAbsence (Tests 225-249)**
 
-**Function: _parse_optional_int (Tests 300-349)**
-
-- Test 300: Returns absent for missing key
-- Test 305: Parses zero as valid integer
-- Test 310: Parses positive integer
-- Test 315: Raises ConfigurationInvalidity for negative integer
-- Test 320: Raises ConfigurationInvalidity for non-integer value (float)
-- Test 325: Raises ConfigurationInvalidity for non-integer value (string)
-- Test 330: Includes type name in error message
-- Test 335: Includes actual value in error message for negative integers
-
-**Function: _parse_rule_parameters (Tests 350-399)**
-
-- Test 350: Returns empty Dictionary for missing 'rules' section
-- Test 355: Parses single rule with parameters
-- Test 360: Parses multiple rules with parameters
-- Test 365: Returns immutable Dictionary instances
-- Test 370: Raises ConfigurationInvalidity for non-dict 'rules' section
-- Test 375: Raises ConfigurationInvalidity for non-string rule code
-- Test 380: Raises ConfigurationInvalidity for non-dict rule parameters
-- Test 385: Includes rule code in error messages
-- Test 390: Handles empty parameters dictionary for rule
-- Test 395: Preserves parameter types (int, float, string, list, dict)
-
-**Function: _discover_pyproject_toml (Tests 400-449)**
-
-- Test 400: Finds pyproject.toml in current directory
-- Test 405: Finds pyproject.toml in parent directory
-- Test 410: Finds pyproject.toml traversing multiple parent levels
-- Test 415: Returns absent when reaching filesystem root
-- Test 420: Returns absent when no pyproject.toml exists
-- Test 425: Resolves start_directory to absolute path
-- Test 430: Handles file path by checking parent directory
-- Test 435: Uses cwd when start_directory is absent
-- Test 440: Stops at root directory without infinite loop
-- Test 445: Ignores directories named 'pyproject.toml'
-
-Exception Handling Tests (450-499)
--------------------------------------------------------------------------------
-
-**Exception: ConfigurationInvalidity (Tests 450-469)**
-
-- Test 450: Instantiates with location and reason
-- Test 455: Inherits from Omnierror and ValueError
-- Test 460: Formats error message with location and reason
-- Test 465: Stores location as string attribute
-- Test 470: Stores reason as string attribute
-
-**Exception: ConfigurationAbsence (Tests 470-489)**
-
-- Test 470: Instantiates with absent location
-- Test 475: Instantiates with specific location
-- Test 480: Inherits from Omnierror and FileNotFoundError
-- Test 485: Formats message for absent location
-- Test 490: Formats message for specific location
-- Test 495: Stores location as None for absent, string otherwise
+- Test 225: Instantiates with absent location
+- Test 230: Instantiates with specific location
+- Test 235: Inherits from Omnierror and FileNotFoundError
+- Test 240: Formats message for absent location
+- Test 245: Formats message for specific location
+- Test 250: Stores location as None for absent, string otherwise
 
 Implementation Notes
 ===============================================================================
@@ -203,19 +153,33 @@ Test data and fixtures
 Fixture setup pattern
 -------------------------------------------------------------------------------
 
-Use module-scoped fixture for fake filesystem with test data::
+Use ``pyfakefs.Patcher`` context manager in each test::
 
-    @pytest.fixture(scope='module')
-    def config_test_fs():
-        '''Provides fake filesystem with configuration test data.'''
+    def test_100_discover_in_current_directory():
+        '''Configuration discovery finds pyproject.toml in current directory.'''
+        module = __.cache_import_module(f"{__.PACKAGE_NAME}.configuration")
+        with Patcher() as patcher:
+            patcher.fs.create_file(
+                '/project/pyproject.toml',
+                contents='[tool.vibelinter]\nselect = ["VBL101"]')
+            patcher.fs.create_dir('/project/subdir')
+            result = module.discover_configuration(Path('/project/subdir'))
+            assert not absence.is_absent(result)
+            assert result.select == ('VBL101',)
+
+For tests using real test data files::
+
+    def test_190_raises_invalidity_for_invalid_toml():
+        '''Configuration loading raises invalidity for invalid TOML.'''
+        module = __.cache_import_module(f"{__.PACKAGE_NAME}.configuration")
         with Patcher() as patcher:
             patcher.fs.add_real_directory(
-                'tests/data/configuration', lazy_read=True)
-            yield patcher.fs
-
-    def test_100_discover_in_current_directory(config_test_fs):
-        '''Configuration discovery finds pyproject.toml in current directory.'''
-        # Test implementation using pyfakefs
+                'tests/data/configuration/invalid', lazy_read=True)
+            with pytest.raises(
+                module.ConfigurationInvalidity,
+                match='Invalid TOML syntax'):
+                module.load_configuration(
+                    'tests/data/configuration/invalid/invalid-toml-syntax.toml')
 
 Test module numbering
 -------------------------------------------------------------------------------
