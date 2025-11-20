@@ -29,5 +29,7 @@ implementation notes for systematic testing of specific modules.
    :maxdepth: 2
    :caption: Test Plans
 
+   configuration-reader
+   engine
    vbl201-import-hub-enforcement
    summary
