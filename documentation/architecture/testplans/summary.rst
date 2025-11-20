@@ -48,11 +48,11 @@ Module Number Assignments
 
 * **200-299**: Configuration and parsing
 
-  * ``test_200_configuration.py`` - Configuration loading and validation
+  * ``test_200_configuration.py`` - Configuration loading and validation (planned)
 
 * **300-399**: Analysis engine
 
-  * ``test_300_engine.py`` - Linting engine core functionality
+  * ``test_300_engine.py`` - Linting engine core functionality (planned)
 
 * **400-499**: Rule implementations (subpackage)
 
@@ -121,3 +121,4 @@ Updates Log
 * 2025-11-18: Initial test organization document created
 * 2025-11-18: Planned VBL201 test module as ``test_420_rules_vbl201.py``
 * 2025-11-18: Adjusted test numbering to place rules (400-499) after configuration (200-299) and engine (300-399) to reflect architectural dependencies
+* 2025-11-20: Added comprehensive test plans for configuration reader (test_200_configuration.py) and engine (test_300_engine.py)
