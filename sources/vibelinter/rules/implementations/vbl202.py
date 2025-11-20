@@ -166,11 +166,13 @@ class VBL202( __.BaseRule ):
         self, node: __.libcst.ImportFrom
     ) -> None:
         ''' Reports violation for single-level import in re-export hub. '''
+        patterns_str = ', '.join( self._reexport_hub_patterns )
         message = (
             "Single-level relative import ('from . import') is not allowed "
-            "in re-export hub modules. This creates backward imports since "
-            "siblings expect to do 'from . import __'. Import from parent "
-            "package instead using 'from .. import'."
+            f"in re-export hub modules ({patterns_str}). This creates "
+            "backward imports since siblings expect to import the hub "
+            "(e.g., 'from . import __'). Import from parent package "
+            "instead using 'from .. import'."
         )
         self._produce_violation( node, message, severity = 'warning' )
 
