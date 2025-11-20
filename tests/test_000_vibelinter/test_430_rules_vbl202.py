@@ -208,8 +208,8 @@ import something
     assert len( violations ) == 0
 
 
-def test_210_single_level_relative_import( ):
-    ''' Single-level relative imports (from . import) are always allowed. '''
+def test_210_single_level_relative_import_in_regular( ):
+    ''' Single-level relative imports allowed in regular modules. '''
     code = '''
 from . import foo
 from . import bar
@@ -228,6 +228,17 @@ from ..baz import qux
 '''
     violations = run_vbl202( code, filename = '__.py' )
     assert len( violations ) == 0
+
+
+def test_225_one_level_in_reexport_hub_violation( ):
+    ''' Single-level relative imports in re-export hubs trigger violations. '''
+    code = '''
+from . import foo
+'''
+    violations = run_vbl202( code, filename = '__.py' )
+    assert len( violations ) == 1
+    assert violations[ 0 ].severity == 'warning'
+    assert 'backward import' in violations[ 0 ].message.lower( )
 
 
 def test_230_mixed_valid_imports( ):
@@ -338,6 +349,35 @@ from ... import bar
     violations = run_vbl202( code, filename = 'regular.py' )
     assert len( violations ) == 2
     # First should be warning (2-level), second should be error (3-level)
+    severities = [ v.severity for v in violations ]
+    assert 'warning' in severities
+    assert 'error' in severities
+
+
+def test_370_one_level_in_hub_multiple( ):
+    ''' Multiple single-level imports in re-export hub. '''
+    code = '''
+from . import foo
+from . import bar
+from .baz import qux
+'''
+    violations = run_vbl202( code, filename = '__.py' )
+    # All three should be violations
+    assert len( violations ) == 3
+    for violation in violations:
+        assert violation.severity == 'warning'
+
+
+def test_380_mixed_valid_invalid_in_hub( ):
+    ''' Mix of valid and invalid imports in re-export hub. '''
+    code = '''
+from .. import valid_two_level
+from . import invalid_one_level
+from ... import invalid_three_level
+'''
+    violations = run_vbl202( code, filename = '__.py' )
+    assert len( violations ) == 2
+    # One-level should be warning, three-level should be error
     severities = [ v.severity for v in violations ]
     assert 'warning' in severities
     assert 'error' in severities
@@ -604,3 +644,43 @@ class MyClass:
 '''
     violations = run_vbl202( code, filename = 'regular.py' )
     assert len( violations ) == 0
+
+
+def test_730_one_level_in_nested_hub( ):
+    ''' Single-level imports in nested re-export hub paths. '''
+    code = '''
+from . import sibling
+'''
+    violations = run_vbl202(
+        code,
+        filename = 'package/subpackage/nested/__.py',
+    )
+    # Should be violation even in nested paths
+    assert len( violations ) == 1
+    assert violations[ 0 ].severity == 'warning'
+
+
+def test_740_realistic_reexport_hub( ):
+    ''' Realistic re-export hub with only parent imports (valid). '''
+    code = '''
+from .. import core
+from .. import utils
+from ..parent import helpers
+from ..parent.submodule import features
+'''
+    violations = run_vbl202( code, filename = 'package/sub/__.py' )
+    # All parent imports should be valid
+    assert len( violations ) == 0
+
+
+def test_750_realistic_broken_reexport_hub( ):
+    ''' Realistic re-export hub with sibling imports (invalid). '''
+    code = '''
+from .. import core
+from . import sibling
+from .. import utils
+'''
+    violations = run_vbl202( code, filename = 'package/sub/__.py' )
+    # Only the sibling import should be invalid
+    assert len( violations ) == 1
+    assert violations[ 0 ].severity == 'warning'

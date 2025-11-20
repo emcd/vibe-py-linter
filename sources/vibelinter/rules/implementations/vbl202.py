@@ -36,6 +36,10 @@
        are only allowed in private re-export hub modules (configurable,
        defaults to `__.py`).
 
+    3. Relative imports with exactly 1 level (e.g., `from . import`) are not
+       allowed in re-export hub modules (`__.py`). This prevents backward
+       imports since siblings expect to do `from . import __`.
+
     This maintains low coupling between packages and prevents complex
     dependency chains that make code hard to understand and refactor.
 '''
@@ -72,6 +76,7 @@ class VBL202( __.BaseRule ):
         # Collections for violations
         self._excessive_depth_imports: list[ __.libcst.ImportFrom ] = [ ]
         self._two_level_imports: list[ __.libcst.ImportFrom ] = [ ]
+        self._one_level_imports_in_hub: list[ __.libcst.ImportFrom ] = [ ]
 
     def visit_ImportFrom( self, node: __.libcst.ImportFrom ) -> bool:
         ''' Collects relative import statements with parent references. '''
@@ -86,6 +91,9 @@ class VBL202( __.BaseRule ):
         elif depth == _MAX_RELATIVE_IMPORT_DEPTH and not self._is_reexport_hub:
             # Exactly 2 levels is only allowed in re-export hubs
             self._two_level_imports.append( node )
+        elif depth == 1 and self._is_reexport_hub:
+            # Single-level imports are not allowed in re-export hubs
+            self._one_level_imports_in_hub.append( node )
         return True
 
     def _analyze_collections( self ) -> None:
@@ -94,6 +102,8 @@ class VBL202( __.BaseRule ):
             self._report_excessive_depth_violation( node )
         for node in self._two_level_imports:
             self._report_two_level_violation( node )
+        for node in self._one_level_imports_in_hub:
+            self._report_one_level_in_hub_violation( node )
 
     def _is_reexport_hub_module( self ) -> bool:
         ''' Checks if current file matches any re-export hub pattern.
@@ -149,6 +159,20 @@ class VBL202( __.BaseRule ):
             "Two-level relative import ('from .. import') is only allowed "
             f"in re-export hub modules ({patterns_str}). "
             "Move this import to a re-export hub or reduce import depth."
+        )
+        self._produce_violation( node, message, severity = 'warning' )
+
+    def _report_one_level_in_hub_violation(
+        self, node: __.libcst.ImportFrom
+    ) -> None:
+        ''' Reports violation for single-level import in re-export hub. '''
+        patterns_str = ', '.join( self._reexport_hub_patterns )
+        message = (
+            "Single-level relative import ('from . import') is not allowed "
+            f"in re-export hub modules ({patterns_str}). This creates "
+            "backward imports since siblings expect to import the hub "
+            "(e.g., 'from . import __'). Import from parent package "
+            "instead using 'from .. import'."
         )
         self._produce_violation( node, message, severity = 'warning' )
 
