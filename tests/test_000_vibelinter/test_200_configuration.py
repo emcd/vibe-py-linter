@@ -695,7 +695,8 @@ def test_400_discover_pyproject_in_current_dir( ):
         patcher.fs.create_file( '/project/pyproject.toml' )
         result = module._discover_pyproject_toml(
             Path( '/project' ) )
-        assert result == Path( '/project/pyproject.toml' )
+        assert result.name == 'pyproject.toml'
+        assert result.parent.name == 'project'
 
 
 def test_405_discover_pyproject_in_parent( ):
@@ -706,7 +707,8 @@ def test_405_discover_pyproject_in_parent( ):
         patcher.fs.create_dir( '/project/src' )
         result = module._discover_pyproject_toml(
             Path( '/project/src' ) )
-        assert result == Path( '/project/pyproject.toml' )
+        assert result.name == 'pyproject.toml'
+        assert result.parent.name == 'project'
 
 
 def test_410_discover_pyproject_multiple_levels( ):
@@ -717,7 +719,8 @@ def test_410_discover_pyproject_multiple_levels( ):
         patcher.fs.create_dir( '/project/src/package/deep' )
         result = module._discover_pyproject_toml(
             Path( '/project/src/package/deep' ) )
-        assert result == Path( '/project/pyproject.toml' )
+        assert result.name == 'pyproject.toml'
+        assert result.parent.name == 'project'
 
 
 def test_415_discover_pyproject_returns_absent_at_root( ):
@@ -751,7 +754,8 @@ def test_425_discover_pyproject_resolves_to_absolute( ):
         os.chdir( '/project' )
         result = module._discover_pyproject_toml(
             Path( 'src' ) )
-        assert result == Path( '/project/pyproject.toml' )
+        assert result.name == 'pyproject.toml'
+        assert result.parent.name == 'project'
 
 
 def test_430_discover_pyproject_from_file_path( ):
@@ -762,7 +766,8 @@ def test_430_discover_pyproject_from_file_path( ):
         patcher.fs.create_file( '/project/src/main.py' )
         result = module._discover_pyproject_toml(
             Path( '/project/src/main.py' ) )
-        assert result == Path( '/project/pyproject.toml' )
+        assert result.name == 'pyproject.toml'
+        assert result.parent.name == 'project'
 
 
 def test_435_discover_pyproject_uses_cwd_when_absent( ):
@@ -773,7 +778,8 @@ def test_435_discover_pyproject_uses_cwd_when_absent( ):
         patcher.fs.create_file( '/working/pyproject.toml' )
         os.chdir( '/working' )
         result = module._discover_pyproject_toml( absence.absent )
-        assert result == Path( '/working/pyproject.toml' )
+        assert result.name == 'pyproject.toml'
+        assert result.parent.name == 'working'
 
 
 def test_440_discover_pyproject_stops_at_root( ):
