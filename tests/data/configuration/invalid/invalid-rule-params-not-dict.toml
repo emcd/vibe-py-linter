@@ -1,0 +1,2 @@
+[tool.vibelinter]
+rules = { VBL101 = "not a dictionary" }

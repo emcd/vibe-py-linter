@@ -1,0 +1,5 @@
+[tool.vibelinter.rules.VBL101]
+max_depth = 3
+
+[tool.vibelinter.rules.VBL201]
+hub_module = "__init__"
