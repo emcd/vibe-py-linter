@@ -1,0 +1,3 @@
+[tool.vibelinter]
+select = ["VBL1", "VBL2"]
+exclude = ["VBL102", "VBL201"]

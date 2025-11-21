@@ -1,0 +1,12 @@
+[tool.vibelinter]
+select = ["VBL101", "VBL201"]
+exclude = ["VBL102"]
+include = ["sources/**/*.py"]
+exclude_paths = ["tests/**"]
+context = 5
+
+[tool.vibelinter.rules.VBL101]
+max_imports = 10
+
+[tool.vibelinter.rules.VBL201]
+enforce_hub = true

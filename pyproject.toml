@@ -114,6 +114,7 @@ dependencies = [
   'packaging',
   'pre-commit',
   'psutil',
+  'pyfakefs',
   'pyright',
   'pytest',
   'ruff',
