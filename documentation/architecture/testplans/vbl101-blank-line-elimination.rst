@@ -45,20 +45,19 @@ Based on the implementation analysis, the following areas need testing:
 1. **Rule instantiation and initialization**
 
    * BaseRule constructor with filename, wrapper, source_lines
-   * Function range collection initialization (``_function_ranges`` list)
    * Rule ID property returning 'VBL101'
 
 2. **Function detection and collection**
 
-   * ``visit_FunctionDef`` method collecting function definitions
+   * Detection of function definitions throughout module
    * Position metadata extraction for functions
    * Start and end line calculation
-   * Handling of position metadata KeyError (graceful degradation)
+   * Handling of position metadata absence (graceful degradation)
    * Collection of nested functions
 
 3. **Blank line detection logic**
 
-   * ``_analyze_collections`` method analyzing collected functions
+   * Analysis of collected functions for blank lines
    * Blank line detection outside docstrings
    * Docstring state tracking (triple-double and triple-single quotes)
    * Docstring delimiter detection and matching
@@ -67,7 +66,7 @@ Based on the implementation analysis, the following areas need testing:
 
 4. **Violation reporting**
 
-   * ``_report_blank_line`` creating Violation objects
+   * Violation object creation for blank lines
    * Correct line number reporting
    * Column number (always 1 for blank lines)
    * Message: "Blank line in function body."
@@ -158,22 +157,26 @@ Test VBL101 on module with code but no functions.
 
 **Expected behavior**: No violations (only functions are analyzed).
 
-test_040_function_ranges_collection
+test_040_multiple_functions_detected
 -------------------------------------------------------------------------------
 
-Verify that ``visit_FunctionDef`` collects function positions correctly.
+Verify that multiple function definitions are detected and analyzed.
 
 **Code example**:
 
 .. code-block:: python
 
    def func1():
-       pass
+       x = 1
+
+       y = 2
 
    def func2():
-       pass
+       a = 3
 
-**Expected behavior**: ``_function_ranges`` contains 2 entries after traversal.
+       b = 4
+
+**Expected behavior**: Violations detected in both functions (observable via violations produced).
 
 test_050_violations_initially_empty
 -------------------------------------------------------------------------------
@@ -199,7 +202,7 @@ Test detection of single blank line within function body.
 
        y = 2
 
-**Expected behavior**: One violation at line 3 (the blank line).
+**Expected behavior**: One violation for the blank line between statements.
 
 test_110_multiple_blank_lines_in_function
 -------------------------------------------------------------------------------
@@ -217,7 +220,7 @@ Test detection of multiple blank lines within single function.
 
        z = 3
 
-**Expected behavior**: Two violations (lines 3 and 5).
+**Expected behavior**: Two violations for the blank lines between statements.
 
 test_120_no_blank_lines_clean_function
 -------------------------------------------------------------------------------
@@ -248,7 +251,7 @@ Test that blank line immediately after function definition is detected.
 
        x = 1
 
-**Expected behavior**: One violation (line 2).
+**Expected behavior**: One violation for the blank line immediately after the function definition.
 
 test_140_multiple_functions_with_violations
 -------------------------------------------------------------------------------
@@ -291,20 +294,20 @@ Test blank line detection within class methods.
 test_160_violation_line_numbers
 -------------------------------------------------------------------------------
 
-Verify violation line numbers are accurate.
+Verify violation line numbers are accurate and correspond to actual blank line positions.
 
 **Code example**:
 
 .. code-block:: python
 
-   def my_function():  # line 1
-       x = 1           # line 2
-                       # line 3 (blank - should violate)
-       y = 2           # line 4
-                       # line 5 (blank - should violate)
-       z = 3           # line 6
+   def my_function():
+       x = 1
 
-**Expected behavior**: Violations at lines 3 and 5 exactly.
+       y = 2
+
+       z = 3
+
+**Expected behavior**: Violations reported with correct line numbers matching the blank line positions in source.
 
 test_170_violation_message_format
 -------------------------------------------------------------------------------
@@ -627,20 +630,22 @@ Test graceful handling when position metadata is not available.
 
 **Test approach**:
 
-* This tests the KeyError exception handling in ``visit_FunctionDef``
-* May require special test setup or mock wrapper without position data
+* Test with wrapper that lacks complete position metadata
+* Verify rule handles metadata absence gracefully
 
-**Expected behavior**: No crash, function is skipped (not added to ranges).
+**Expected behavior**: No crash, rule continues processing other functions successfully.
 
 test_380_source_lines_boundary
 -------------------------------------------------------------------------------
 
-Test handling when line_num exceeds source_lines length.
+Test handling of boundary conditions with source line access.
 
-**Code example**: Function definition that might have line numbers beyond
-source_lines tuple length due to metadata mismatch.
+**Test approach**:
 
-**Expected behavior**: No crash (line 80 has boundary check).
+* Test functions at end of file
+* Verify proper handling of line number boundaries
+
+**Expected behavior**: No crash, boundary conditions handled gracefully.
 
 Nested Functions and Complex Scenarios (400-499)
 ===============================================================================
@@ -910,12 +915,11 @@ Test VBL101 complies with BaseRule contract.
 
 **Test approach**:
 
-* Verify inheritance from BaseRule
-* Verify ``rule_id`` property is implemented
-* Verify ``_analyze_collections`` is implemented
-* Verify ``visit_FunctionDef`` returns True (continue visiting children)
+* Verify rule has required ``rule_id`` property
+* Verify rule produces violations when run on code with blank lines
+* Verify rule integrates properly with BaseRule visitor pattern
 
-**Expected behavior**: Full compliance with BaseRule interface.
+**Expected behavior**: Full compliance with BaseRule interface observable through proper violation generation.
 
 Implementation Notes
 ===============================================================================
@@ -989,24 +993,30 @@ Dependencies and Fixtures Needed
 
 * None needed - Inline code snippets are sufficient
 
-Private Functions/Methods Analysis
+Testing Through Public API
 -------------------------------------------------------------------------------
 
-**Private methods in VBL101**:
+**Testing Philosophy**:
 
-* ``visit_FunctionDef(node)`` - Testable via function detection behavior
-* ``_analyze_collections()`` - Testable via violations produced
-* ``_report_blank_line(line_num)`` - Testable via violation content
+All VBL101 functionality is tested exclusively through its public API:
 
-**Assessment**: All private methods are testable via the public API (violations
-produced and function range collection). No direct testing of private methods
-is needed.
+* Rule instantiation (constructor)
+* ``rule_id`` property
+* ``violations`` property (tuple of Violation objects)
 
-The collection-then-analysis pattern means:
+**Observable Behaviors**:
 
-* ``visit_FunctionDef`` is called during traversal (via wrapper.visit)
-* ``_analyze_collections`` is called automatically by BaseRule.leave_Module
-* Both are fully exercised by running the rule on test code
+* Function detection - Verified by violations appearing for functions with blank lines
+* Blank line detection - Verified by violations at correct line numbers
+* Docstring handling - Verified by absence of violations for blank lines in docstrings
+* Violation reporting - Verified by violation message, severity, and position
+
+**Implementation Details**:
+
+Internal implementation details (private methods, collection mechanisms, state tracking)
+are not tested directly. Instead, tests verify the rule produces correct violations
+for various input scenarios, confirming the implementation works correctly without
+coupling tests to implementation specifics.
 
 Immutability Constraints
 -------------------------------------------------------------------------------
@@ -1049,11 +1059,13 @@ Test Module Numbering
 Anti-Patterns to Avoid
 -------------------------------------------------------------------------------
 
-* **DO NOT** test private methods directly - test through public API
+* **DO NOT** test private methods or internal state directly - test exclusively through public API
+* **DO NOT** inspect internal attributes like ``_function_ranges`` or ``_violations`` - use public ``violations`` property
 * **DO NOT** mock LibCST internals - use real LibCST objects
 * **DO NOT** create actual files - use in-memory code snippets
-* **DO NOT** test implementation details of docstring tracking - test observable
+* **DO NOT** test implementation details (state machines, algorithms) - test observable
   behavior (violations produced or not produced)
+* **DO NOT** verify method calls or execution order - verify outcomes only
 
 Pushback Recommendations
 ===============================================================================
@@ -1062,39 +1074,39 @@ Pushback Recommendations
 
 1. **String literal handling**
 
-   * Current implementation tracks docstrings only
-   * Triple-quoted string literals (not docstrings) may contain blank lines
-   * Current code at lines 84-97 only tracks docstrings at function start
+   * Current implementation tracks docstrings at function start
+   * Triple-quoted string literals (not docstrings) elsewhere may contain blank lines
    * May produce false positives for string literals with blank lines
 
-   **Recommendation**: Consider enhancing docstring tracking to recognize all
-   triple-quoted strings, or document that blank lines in string literals
-   may trigger violations. Current implementation is simple but may need
-   refinement based on test results.
+   **Recommendation**: Consider enhancing string tracking to recognize all
+   triple-quoted strings, or document that blank lines in non-docstring
+   string literals may trigger violations. Current implementation is simple
+   but may need refinement based on test results.
 
 2. **Position metadata dependency**
 
-   * Gracefully handles KeyError when position unavailable (line 66)
+   * Gracefully handles absence of position metadata
    * Silent skip means functions without positions are ignored
    * No warning or diagnostic for debugging
 
    **Recommendation**: Consider logging when functions are skipped due to
    missing metadata. This aids debugging metadata provider issues.
 
-3. **Boundary condition at line 80**
+3. **Boundary condition handling**
 
-   * Check: ``if line_num - 1 >= len(self.source_lines): break``
+   * Implementation checks for line numbers exceeding source_lines length
    * This prevents index errors but may silently skip function ends
    * Could indicate metadata/source mismatch
 
-   **Recommendation**: Consider logging or warning when this condition triggers,
-   as it may indicate a problem with source_lines vs metadata consistency.
+   **Recommendation**: Consider logging or warning when boundary conditions
+   trigger, as it may indicate a problem with source_lines vs metadata
+   consistency.
 
 4. **Docstring delimiter tracking**
 
-   * Current tracking counts delimiters (line 92-94)
-   * Relies on ``delimiter_count >= 2`` to detect single-line docstrings
-   * May have edge cases with delimiter in string content
+   * Current tracking counts delimiters to detect single-line docstrings
+   * Relies on delimiter counting to track docstring state
+   * May have edge cases with delimiter characters in string content
 
    **Recommendation**: Current approach is sound for well-formed code. Testing
    will validate edge case handling.
