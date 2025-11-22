@@ -568,7 +568,8 @@ def test_270_lint_file_reads_utf8_encoding( mock_registry, minimal_config ):
     with Patcher( ) as patcher:
         patcher.fs.create_file(
             '/test/unicode.py',
-            contents = '# -*- coding: utf-8 -*-\nx = "Hello 世界"\n'
+            contents = '# -*- coding: utf-8 -*-\nx = "Hello 世界"\n',
+            encoding = 'utf-8'
         )
         report = engine.lint_file( Path( '/test/unicode.py' ) )
         assert isinstance( report, module.Report )
