@@ -22,8 +22,9 @@ Test Plan: VBL101 Blank Line Elimination
 *******************************************************************************
 
 This test plan covers comprehensive testing of the VBL101 rule, which detects
-blank lines within function and method bodies to improve vertical compactness
-per project coding standards.
+blank lines between statements in function and method bodies to improve vertical
+compactness per project coding standards. Blank lines inside string literals
+are allowed.
 
 Coverage Analysis Summary
 ===============================================================================
@@ -57,12 +58,11 @@ Based on the implementation analysis, the following areas need testing:
 
 3. **Blank line detection logic**
 
-   * Analysis of collected functions for blank lines
-   * Blank line detection outside docstrings
-   * Docstring state tracking (triple-double and triple-single quotes)
-   * Docstring delimiter detection and matching
-   * Single-line vs multi-line docstring handling
-   * Blank lines inside docstrings (should be allowed)
+   * Analysis of collected functions for blank lines between statements
+   * String literal state tracking (triple-double and triple-single quotes)
+   * String delimiter detection and matching
+   * Single-line vs multi-line string handling
+   * Blank lines inside string literals (should be allowed)
 
 4. **Violation reporting**
 
@@ -98,8 +98,8 @@ Test module: ``tests/test_000_vibelinter/test_410_rules_vbl101.py``
 The test module will follow the standard numbering convention:
 
 * **000-099**: Basic functionality and rule instantiation
-* **100-199**: Simple blank line detection (no docstrings)
-* **200-299**: Docstring handling (blank lines inside docstrings)
+* **100-199**: Simple blank line detection (no string literals)
+* **200-299**: String literal handling (blank lines inside strings)
 * **300-399**: Edge cases and boundary conditions
 * **400-499**: Nested functions and complex scenarios
 * **500-599**: Integration with metadata and position providers
@@ -325,127 +325,130 @@ Verify violation column is always 1 for blank lines.
 
 **Expected behavior**: All violations have ``column=1``.
 
-Docstring Handling Tests (200-299)
+String Literal Handling Tests (200-299)
 ===============================================================================
 
-test_200_blank_lines_inside_triple_double_docstring
+test_200_blank_lines_inside_triple_double_string
 -------------------------------------------------------------------------------
 
-Test that blank lines inside triple-double-quote docstrings are allowed.
+Test that blank lines inside triple-double-quote strings are allowed.
 
 **Code example**:
 
 .. code-block:: python
 
    def my_function():
-       ''' This is a docstring.
-
-           It has blank lines inside.
-
-           This is allowed.
-       '''
-       x = 1
-
-**Expected behavior**: No violations (blank lines inside docstring are OK).
-
-test_210_blank_lines_inside_triple_single_docstring
--------------------------------------------------------------------------------
-
-Test that blank lines inside triple-single-quote docstrings are allowed.
-
-**Code example**:
-
-.. code-block:: python
-
-   def my_function():
-       """ This is a docstring.
+       text = """This is a string.
 
            It has blank lines inside.
 
            This is allowed.
        """
-       x = 1
+       return text
+
+**Expected behavior**: No violations (blank lines inside string literals are OK).
+
+test_210_blank_lines_inside_triple_single_string
+-------------------------------------------------------------------------------
+
+Test that blank lines inside triple-single-quote strings are allowed.
+
+**Code example**:
+
+.. code-block:: python
+
+   def my_function():
+       text = '''This is a string.
+
+           It has blank lines inside.
+
+           This is allowed.
+       '''
+       return text
 
 **Expected behavior**: No violations.
 
-test_220_blank_line_after_docstring
+test_220_blank_line_after_string_literal
 -------------------------------------------------------------------------------
 
-Test that blank line after docstring (but still in function body) is detected.
+Test that blank line after string literal (between statements) is detected.
 
 **Code example**:
 
 .. code-block:: python
 
    def my_function():
-       ''' Short docstring. '''
+       text = 'Short string.'
 
        x = 1
 
-**Expected behavior**: One violation (line after docstring).
+**Expected behavior**: One violation for blank line between statements.
 
-test_230_single_line_docstring
+test_230_docstring_with_blank_lines
 -------------------------------------------------------------------------------
 
-Test function with single-line docstring and no blank lines.
+Test function with docstring containing blank lines.
 
 **Code example**:
 
 .. code-block:: python
 
    def my_function():
-       ''' Does something. '''
+       ''' Does something.
+
+           This docstring has blank lines.
+       '''
        return 42
 
-**Expected behavior**: No violations.
+**Expected behavior**: No violations (blank lines inside docstring are allowed).
 
-test_240_multiline_docstring_closes_on_same_line
+test_240_string_closes_on_same_line
 -------------------------------------------------------------------------------
 
-Test docstring that opens and closes on same line (but uses triple quotes).
+Test string that opens and closes on same line (but uses triple quotes).
 
 **Code example**:
 
 .. code-block:: python
 
    def my_function():
-       ''' Short single-line docstring with triple quotes. '''
+       text = '''Short single-line string with triple quotes.'''
        x = 1
 
 **Expected behavior**: No violations.
 
-test_250_docstring_with_delimiter_in_content
+test_250_string_with_delimiter_in_content
 -------------------------------------------------------------------------------
 
-Test docstring containing the delimiter characters in content.
+Test string containing the delimiter characters in content.
 
 **Code example**:
 
 .. code-block:: python
 
    def my_function():
-       ''' This docstring mentions ''' in the text.
-           But it's still part of the docstring.
+       text = '''This string mentions ''' in the text.
+           But it's still part of the string.
        '''
        x = 1
 
-**Expected behavior**: No violations (docstring delimiter tracking works).
+**Expected behavior**: No violations (string delimiter tracking works).
 
-test_260_mixed_docstring_types_in_file
+test_260_mixed_string_types_in_file
 -------------------------------------------------------------------------------
 
-Test file with both triple-single and triple-double quote docstrings.
+Test file with both triple-single and triple-double quote strings.
 
 **Code example**:
 
 .. code-block:: python
 
    def func1():
-       ''' Uses triple-single quotes. '''
+       text1 = '''Uses triple-single quotes.'''
        x = 1
 
    def func2():
-       """ Uses triple-double quotes. """
+       text2 = """Uses triple-double quotes."""
        y = 2
 
 **Expected behavior**: No violations (both types handled correctly).
@@ -453,21 +456,21 @@ Test file with both triple-single and triple-double quote docstrings.
 test_270_function_with_only_docstring
 -------------------------------------------------------------------------------
 
-Test function containing only a docstring, no other code.
+Test function containing only a docstring (which is a string literal).
 
 **Code example**:
 
 .. code-block:: python
 
    def my_function():
-       ''' This function only has a docstring. '''
+       '''This function only has a docstring.'''
 
 **Expected behavior**: No violations.
 
-test_280_blank_line_before_docstring
+test_280_blank_line_before_string
 -------------------------------------------------------------------------------
 
-Test blank line between function def and docstring.
+Test blank line before string literal in function body.
 
 **Code example**:
 
@@ -475,15 +478,15 @@ Test blank line between function def and docstring.
 
    def my_function():
 
-       ''' Docstring after blank line. '''
+       text = '''String after blank line.'''
        x = 1
 
-**Expected behavior**: One violation (blank line before docstring).
+**Expected behavior**: One violation for blank line before the string literal.
 
-test_290_docstring_not_first_statement
+test_290_multiline_string_not_first_statement
 -------------------------------------------------------------------------------
 
-Test that blank line detection works when docstring is not first statement.
+Test multiline string appearing after other statements.
 
 **Code example**:
 
@@ -491,11 +494,14 @@ Test that blank line detection works when docstring is not first statement.
 
    def my_function():
        x = 1
-       ''' This is actually a string literal, not a docstring. '''
+       text = '''This is a string literal.
+
+           With blank lines inside.
+       '''
 
        y = 2
 
-**Expected behavior**: One violation (blank line after string literal).
+**Expected behavior**: One violation for blank line after the string literal.
 
 Edge Cases and Boundary Conditions (300-399)
 ===============================================================================
@@ -562,10 +568,7 @@ Test that blank lines inside string literals don't cause false positives.
        '''
        return text
 
-**Expected behavior**: No violations (strings are not docstrings in this context).
-
-Note: Current implementation may flag this as violation since it only tracks
-docstrings, not all triple-quoted strings. This test will clarify behavior.
+**Expected behavior**: No violations (blank lines inside any string literal are allowed).
 
 test_340_function_with_comments_on_blank_lines
 -------------------------------------------------------------------------------
@@ -1007,8 +1010,8 @@ All VBL101 functionality is tested exclusively through its public API:
 **Observable Behaviors**:
 
 * Function detection - Verified by violations appearing for functions with blank lines
-* Blank line detection - Verified by violations at correct line numbers
-* Docstring handling - Verified by absence of violations for blank lines in docstrings
+* Blank line detection - Verified by violations at correct line numbers for blank lines between statements
+* String literal handling - Verified by absence of violations for blank lines inside any triple-quoted strings
 * Violation reporting - Verified by violation message, severity, and position
 
 **Implementation Details**:
@@ -1072,18 +1075,7 @@ Pushback Recommendations
 
 **VBL101 design observations**:
 
-1. **String literal handling**
-
-   * Current implementation tracks docstrings at function start
-   * Triple-quoted string literals (not docstrings) elsewhere may contain blank lines
-   * May produce false positives for string literals with blank lines
-
-   **Recommendation**: Consider enhancing string tracking to recognize all
-   triple-quoted strings, or document that blank lines in non-docstring
-   string literals may trigger violations. Current implementation is simple
-   but may need refinement based on test results.
-
-2. **Position metadata dependency**
+1. **Position metadata dependency**
 
    * Gracefully handles absence of position metadata
    * Silent skip means functions without positions are ignored
@@ -1092,7 +1084,7 @@ Pushback Recommendations
    **Recommendation**: Consider logging when functions are skipped due to
    missing metadata. This aids debugging metadata provider issues.
 
-3. **Boundary condition handling**
+2. **Boundary condition handling**
 
    * Implementation checks for line numbers exceeding source_lines length
    * This prevents index errors but may silently skip function ends
@@ -1102,10 +1094,10 @@ Pushback Recommendations
    trigger, as it may indicate a problem with source_lines vs metadata
    consistency.
 
-4. **Docstring delimiter tracking**
+3. **String delimiter tracking**
 
-   * Current tracking counts delimiters to detect single-line docstrings
-   * Relies on delimiter counting to track docstring state
+   * Current tracking counts delimiters to detect single-line strings
+   * Relies on delimiter counting to track string literal state
    * May have edge cases with delimiter characters in string content
 
    **Recommendation**: Current approach is sound for well-formed code. Testing
@@ -1136,7 +1128,7 @@ Test Count Estimate
 
 * Basic functionality: 6 tests
 * Simple blank line detection: 9 tests
-* Docstring handling: 10 tests
+* String literal handling: 10 tests
 * Edge cases and boundaries: 9 tests
 * Nested functions and complex scenarios: 10 tests
 * Integration and metadata: 6 tests
@@ -1149,41 +1141,36 @@ Validation Criteria
 Tests must validate:
 
 * ✓ VBL101 instantiates correctly
-* ✓ Blank lines in function bodies are detected
-* ✓ Blank lines inside docstrings are allowed
-* ✓ Both triple-single and triple-double quote docstrings work
-* ✓ Single-line and multi-line docstrings handled correctly
+* ✓ Blank lines between statements in function bodies are detected
+* ✓ Blank lines inside string literals are allowed
+* ✓ Both triple-single and triple-double quote strings work
+* ✓ Single-line and multi-line strings handled correctly
 * ✓ Nested functions are both analyzed
 * ✓ Violation messages are accurate
 * ✓ Line numbers in violations are correct
 * ✓ Methods (not just functions) are analyzed
 * ✓ Edge cases are handled gracefully
-* ✓ No false positives for legitimate blank lines in docstrings
+* ✓ No false positives for blank lines inside any string literal
 
 Potential Challenges
 ===============================================================================
 
-1. **Docstring tracking complexity**
+1. **String literal tracking complexity**
 
-   * Challenge: Ensuring docstring state machine is correct
-   * Solution: Comprehensive tests of docstring scenarios (200-299 range)
+   * Challenge: Ensuring string literal state machine is correct
+   * Solution: Comprehensive tests of string literal scenarios (200-299 range)
 
-2. **Triple-quoted string literals vs docstrings**
-
-   * Challenge: Distinguishing docstrings from other triple-quoted strings
-   * Solution: Test to document current behavior; may reveal enhancement needs
-
-3. **Nested function position ranges**
+2. **Nested function position ranges**
 
    * Challenge: Ensuring nested function ranges don't interfere
    * Solution: Explicit tests of nested scenarios (400-499 range)
 
-4. **Metadata provider integration**
+3. **Metadata provider integration**
 
    * Challenge: Creating proper test setup with PositionProvider
    * Solution: Helper fixture abstracts wrapper creation (500-599 range)
 
-5. **Source line boundary conditions**
+4. **Source line boundary conditions**
 
    * Challenge: Edge cases at file end or with mismatched metadata
    * Solution: Boundary tests (300-399 range) and defensive test design
@@ -1195,7 +1182,7 @@ Priority and Implementation Order
 
 1. Basic functionality tests (000-099) - Foundation
 2. Simple blank line detection (100-199) - Core feature
-3. Docstring handling (200-299) - Critical for avoiding false positives
+3. String literal handling (200-299) - Critical for avoiding false positives
 
 **Medium Priority** (implement second):
 
