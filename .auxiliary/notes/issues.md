@@ -1,10 +1,11 @@
 # Known Issues and Investigation Notes
 
-## VBL101: String Literal Detection Bug
+## VBL101: String Literal Detection Bug [RESOLVED]
 
 **Severity**: Medium
 **Component**: `sources/vibelinter/rules/implementations/vbl101.py:87-88`
 **Discovered**: 2025-11-22 (during test development)
+**Resolved**: 2025-11-22 (commit c62a39a)
 
 **Description**: The string literal detection logic only identifies triple-quoted strings that appear at the beginning of a stripped line. This causes false positives for blank lines inside string literals that follow assignments or other code.
 
@@ -50,10 +51,18 @@ starts_triple_single = stripped.startswith( "'''" )
 **Recommended Approach**: Robust fix using LibCST node detection, since the codebase already uses LibCST for parsing and the line-based approach is inherently fragile for this use case.
 
 **Test Coverage**: Bug is documented in:
-- `tests/test_000_vibelinter/test_410_rules_vbl101.py:test_200` (workaround)
-- `tests/test_000_vibelinter/test_410_rules_vbl101.py:test_210` (workaround)
-- `tests/test_000_vibelinter/test_410_rules_vbl101.py:test_290` (documents buggy behavior)
-- `tests/test_000_vibelinter/test_410_rules_vbl101.py:test_330` (workaround)
+- `tests/test_000_vibelinter/test_410_rules_vbl101.py:test_200` (now tests correctly)
+- `tests/test_000_vibelinter/test_410_rules_vbl101.py:test_210` (now tests correctly)
+- `tests/test_000_vibelinter/test_410_rules_vbl101.py:test_290` (now tests correctly)
+- `tests/test_000_vibelinter/test_410_rules_vbl101.py:test_330` (now tests correctly)
+
+**Resolution**: Implemented LibCST-based string literal detection
+- Added `visit_SimpleString()` method to collect triple-quoted string ranges
+- Added `visit_ConcatenatedString()` method for concatenated strings
+- Added `_is_in_string()` helper to check if line falls within string
+- Removed fragile line-based string detection logic
+- All tests now pass with assigned strings, not just docstrings
+- Visitor methods whitelisted in `.auxiliary/configuration/vulturefood.py`
 
 ---
 
