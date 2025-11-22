@@ -25,18 +25,15 @@ Coverage Analysis Summary
 ===============================================================================
 
 - **Current coverage**: 33% (72 statements, 45 uncovered, 10 branches)
-- **Target coverage**: 100%
+- **Target coverage**: 95%+ through public API testing only
 - **Uncovered lines**: 36, 94-95, 107-108, 114-119, 128-142, 150-153, 159-163, 178-193, 209-214
+- **Testing approach**: Focus exclusively on public API (lint_file, lint_source, lint_files); do NOT test private methods directly
 - **Missing functionality tests**:
 
   - EngineConfiguration instantiation with defaults
   - Engine initialization and configuration
   - File reading and linting (lint_file)
   - Source code linting with violations
-  - Metadata wrapper creation with error handling
-  - Rule instantiation with parameters
-  - Rule execution via CST traversal
-  - Violation collection and sorting
   - Context extraction integration
   - Multi-file linting with error recovery
   - Performance timing measurement
@@ -124,64 +121,13 @@ Single-File Linting Tests (250-349)
 - Test 340: Skips context extraction when no violations
 - Test 345: Handles empty source code gracefully
 
-Metadata Wrapper Creation Tests (350-399)
--------------------------------------------------------------------------------
+.. note::
 
-**Engine._create_metadata_wrapper (Tests 350-379)**
-
-- Test 350: Parses valid Python source
-- Test 355: Creates MetadataWrapper successfully
-- Test 360: Returns tuple of wrapper and source_lines
-- Test 365: Splits source into lines correctly
-- Test 370: Preserves empty lines in source_lines
-- Test 375: Handles single-line source
-- Test 380: Raises MetadataProvideFailure on metadata error
-- Test 385: Includes filename in MetadataProvideFailure
-- Test 390: Chains original exception in MetadataProvideFailure
-- Test 395: Handles malformed Python syntax in parse_module
-
-Rule Instantiation Tests (400-449)
--------------------------------------------------------------------------------
-
-**Engine._instantiate_rules (Tests 400-439)**
-
-- Test 400: Instantiates single rule from enabled_rules
-- Test 405: Instantiates multiple rules from enabled_rules
-- Test 410: Passes filename to rule constructor
-- Test 415: Passes wrapper to rule constructor
-- Test 420: Passes source_lines to rule constructor
-- Test 425: Passes rule parameters from configuration
-- Test 430: Uses empty Dictionary for rules without parameters
-- Test 435: Returns list of instantiated rules
-- Test 440: Raises RuleExecuteFailure on rule instantiation error
-- Test 445: Includes VBL code in RuleExecuteFailure
-- Test 450: Chains original exception in RuleExecuteFailure
-
-Rule Execution Tests (450-499)
--------------------------------------------------------------------------------
-
-**Engine._execute_rules (Tests 450-479)**
-
-- Test 450: Visits each rule with metadata wrapper
-- Test 455: Executes rules in order
-- Test 460: Completes traversal for all rules
-- Test 465: Raises RuleExecuteFailure on rule visit error
-- Test 470: Includes rule_id in RuleExecuteFailure
-- Test 475: Chains original exception in RuleExecuteFailure
-
-Violation Collection Tests (480-529)
--------------------------------------------------------------------------------
-
-**Engine._collect_violations (Tests 480-519)**
-
-- Test 480: Collects violations from single rule
-- Test 485: Collects violations from multiple rules
-- Test 490: Returns empty list when no violations
-- Test 495: Sorts violations by line number
-- Test 500: Sorts violations by column when lines equal
-- Test 505: Maintains stable sort for equal positions
-- Test 510: Flattens violations from all rules into single list
-- Test 515: Returns list (not tuple) for internal processing
+   Private methods (_create_metadata_wrapper, _instantiate_rules, _execute_rules,
+   _collect_violations) are **not tested directly**. All functionality is tested
+   exclusively through the public API methods (lint_file, lint_source, lint_files).
+   This approach maintains encapsulation and focuses on observable behavior rather
+   than implementation details.
 
 Multi-File Linting Tests (530-599)
 -------------------------------------------------------------------------------
@@ -210,11 +156,10 @@ Integration Tests (600-699)
 - Test 620: Analysis timing is measured correctly
 - Test 625: Violations from multiple files are independent
 
-**Performance Characteristics (Tests 650-699)**
+**Performance Characteristics (Tests 650-699)** *(Optional - Not Primary Goals)*
 
-- Test 650: Analysis completes within performance budget
-- Test 655: Single-pass traversal (verify metadata wrapper visited once)
-- Test 660: Memory-efficient violation storage
+- Test 650: Analysis completes within performance budget *(optional - may skip if platform-dependent)*
+- Test 655: Single-pass traversal verification *(implicitly validated through integration tests)*
 
 Error Handling Integration Tests (700-799)
 -------------------------------------------------------------------------------
@@ -295,32 +240,32 @@ Test organization pattern
 
 Organize tests by Engine method with clear separation::
 
-    # Basic functionality
+    # Basic functionality (000-099)
     def test_000_engine_module_imports()
     def test_010_configuration_instantiation()
 
-    # Engine initialization
-    def test_200_engine_initialization()
+    # EngineConfiguration dataclass (100-149)
+    def test_100_instantiates_with_enabled_rules()
 
-    # lint_file method
+    # Report dataclass (150-199)
+    def test_150_report_instantiates_with_fields()
+
+    # Engine initialization (200-249)
+    def test_200_engine_initializes_with_registry()
+
+    # lint_file method (250-279)
     def test_250_lint_file_valid_source()
 
-    # lint_source method
+    # lint_source method (280-349)
     def test_280_lint_source_valid_code()
 
-    # Helper methods (via public API)
-    def test_350_metadata_wrapper_creation()
-    def test_400_rule_instantiation()
-    def test_450_rule_execution()
-    def test_480_violation_collection()
-
-    # lint_files method
+    # lint_files method (530-599)
     def test_530_lint_files_multiple()
 
-    # Integration tests
+    # Integration tests (600-699)
     def test_600_end_to_end_workflow()
 
-    # Error handling
+    # Error handling (700-799)
     def test_700_exception_handling()
 
 Test module numbering
@@ -362,22 +307,18 @@ Pushback recommendations
 Success Metrics
 ===============================================================================
 
-- **Target line coverage**: 100% (from current 33%)
-- **Branch coverage goals**: 100% (from current 0%)
-- **Specific gaps to close**: All 45 uncovered lines
+- **Target line coverage**: 95%+ (from current 33%)
+- **Branch coverage goals**: All major code paths through public API
+- **Specific gaps to close**: Lines 36, 94-95, 107-108, 114-119, 128-142, 150-153, 159-163, 178-193, 209-214
 
-Closure of uncovered lines
+Note on coverage targets
 -------------------------------------------------------------------------------
 
-- **Line 36**: _create_empty_rule_parameters - Test 030
-- **Lines 94-95**: Engine.__init__ - Tests 200-225
-- **Lines 107-108**: lint_file - Tests 250-275
-- **Lines 114-119**: _create_metadata_wrapper - Tests 350-395
-- **Lines 128-142**: _instantiate_rules - Tests 400-450
-- **Lines 150-153**: _execute_rules - Tests 450-475
-- **Lines 159-163**: _collect_violations - Tests 480-515
-- **Lines 178-193**: lint_source - Tests 280-345
-- **Lines 209-214**: lint_files - Tests 530-570
+Target is 95%+ rather than 100% because:
+
+- Private methods tested exclusively through public API may have edge cases not worth forcing
+- Some error handling paths may be difficult to trigger without invasive mocking
+- Focus on observable behavior and correctness over arbitrary coverage numbers
 
 Expected test count
 -------------------------------------------------------------------------------
@@ -388,14 +329,10 @@ Expected test count
 - Engine initialization: 6 tests
 - lint_file: 6 tests
 - lint_source: 14 tests
-- Metadata wrapper creation: 10 tests
-- Rule instantiation: 11 tests
-- Rule execution: 6 tests
-- Violation collection: 8 tests
 - lint_files: 9 tests
-- Integration tests: 11 tests
-- Error handling: 13 tests
-- **Total**: Approximately 115 tests
+- Integration tests: 10-12 tests (performance tests optional)
+- Error handling: 7+ tests
+- **Total**: Approximately 70-75 tests
 
 Estimated complexity: High - Requires mock rules and integration testing
 

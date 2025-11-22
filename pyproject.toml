@@ -276,7 +276,7 @@ markers = [
 [tool.ruff]
 #builtins = [ 'ic' ]
 cache-dir = '.auxiliary/caches/ruff'
-extend-exclude = [ 'vulturefood.py' ]
+extend-exclude = [ 'vulturefood.py', 'tests/data/**' ]
 indent-width = 4
 line-length = 79
 [tool.ruff.lint]
