@@ -56,7 +56,7 @@ Module Number Assignments
 
 * **400-499**: Rule implementations (subpackage)
 
-  * ``test_410_rules_vbl101.py`` - VBL101 rule tests
+  * ``test_410_rules_vbl101.py`` - VBL101 blank line elimination tests (planned)
   * ``test_420_rules_vbl201.py`` - VBL201 import hub enforcement tests
 
 * **500-599**: CLI interface
@@ -122,3 +122,4 @@ Updates Log
 * 2025-11-18: Planned VBL201 test module as ``test_420_rules_vbl201.py``
 * 2025-11-18: Adjusted test numbering to place rules (400-499) after configuration (200-299) and engine (300-399) to reflect architectural dependencies
 * 2025-11-20: Added comprehensive test plans for configuration reader (test_200_configuration.py) and engine (test_300_engine.py)
+* 2025-11-22: Added comprehensive test plan for VBL101 blank line elimination (test_410_rules_vbl101.py)

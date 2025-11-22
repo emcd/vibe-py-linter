@@ -31,5 +31,6 @@ implementation notes for systematic testing of specific modules.
 
    configuration-reader
    engine
+   vbl101-blank-line-elimination
    vbl201-import-hub-enforcement
    summary
