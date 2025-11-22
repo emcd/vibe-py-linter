@@ -557,7 +557,8 @@ def test_265_lint_file_passes_path_as_filename( mock_registry, minimal_config ):
             contents = 'x = 1\n'
         )
         report = engine.lint_file( Path( '/test/sample.py' ) )
-        assert report.filename == '/test/sample.py'
+        # Compare path parts to handle Windows/Unix separator differences
+        assert Path( report.filename ).parts == Path( '/test/sample.py' ).parts
 
 
 def test_270_lint_file_reads_utf8_encoding( mock_registry, minimal_config ):
@@ -821,7 +822,8 @@ def test_550_lint_files_continues_after_file_error( mock_registry ):
         ] )
         # Should have skipped bad.py but processed good.py
         assert len( reports ) == 1
-        assert reports[ 0 ].filename == '/test/good.py'
+        # Compare path parts to handle Windows/Unix separator differences
+        assert Path( reports[ 0 ].filename ).parts == Path( '/test/good.py' ).parts
 
 
 def test_555_lint_files_skips_file_with_exception( mock_registry ):
@@ -859,9 +861,10 @@ def test_565_lint_files_preserves_file_order( mock_registry, minimal_config ):
             Path( '/test/b.py' ),
             Path( '/test/c.py' )
         ] )
-        assert reports[ 0 ].filename == '/test/a.py'
-        assert reports[ 1 ].filename == '/test/b.py'
-        assert reports[ 2 ].filename == '/test/c.py'
+        # Compare path parts to handle Windows/Unix separator differences
+        assert Path( reports[ 0 ].filename ).parts == Path( '/test/a.py' ).parts
+        assert Path( reports[ 1 ].filename ).parts == Path( '/test/b.py' ).parts
+        assert Path( reports[ 2 ].filename ).parts == Path( '/test/c.py' ).parts
 
 
 def test_570_lint_files_handles_mix_of_valid_invalid( mock_registry ):
@@ -900,7 +903,8 @@ def test_600_end_to_end_workflow( mock_registry, minimal_config ):
         report = engine.lint_file( Path( '/test/complete.py' ) )
         assert isinstance( report, module.Report )
         assert len( report.violations ) > 0
-        assert report.filename == '/test/complete.py'
+        # Compare path parts to handle Windows/Unix separator differences
+        assert Path( report.filename ).parts == Path( '/test/complete.py' ).parts
         assert report.rule_count == 1
 
 
