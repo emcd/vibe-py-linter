@@ -49,6 +49,8 @@ _ = ContextExtractor.format_context_display
 
 # VBL101 visitor methods
 _ = VBL101.visit_FunctionDef
+_ = VBL101.visit_SimpleString
+_ = VBL101.visit_ConcatenatedString
 
 # VBL201 visitor methods
 _ = VBL201.visit_FunctionDef

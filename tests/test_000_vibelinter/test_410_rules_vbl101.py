@@ -259,36 +259,30 @@ def test_180_violation_column_number( ):
 
 
 def test_200_blank_lines_inside_triple_double_string( ):
-    ''' Blank lines inside triple-double-quote docstrings are allowed. '''
-    # NOTE: Current implementation has a bug - it only detects strings
-    # that start with triple quotes at line beginning, not after assignments.
-    # Using a docstring pattern instead to test the working case.
+    ''' Blank lines inside triple-double-quote strings are allowed. '''
     code = '''def my_function():
-    """This is a docstring.
+    text = """This is a string.
 
     It has blank lines inside.
 
     This is allowed.
     """
-    return 42
+    return text
 '''
     violations = run_vbl101( code )
     assert len( violations ) == 0
 
 
 def test_210_blank_lines_inside_triple_single_string( ):
-    ''' Blank lines inside triple-single-quote docstrings are allowed. '''
-    # NOTE: Current implementation has a bug - it only detects strings
-    # that start with triple quotes at line beginning, not after assignments.
-    # Using a docstring pattern instead to test the working case.
+    ''' Blank lines inside triple-single-quote strings are allowed. '''
     code = """def my_function():
-    '''This is a docstring.
+    text = '''This is a string.
 
     It has blank lines inside.
 
     This is allowed.
     '''
-    return 42
+    return text
 """
     violations = run_vbl101( code )
     assert len( violations ) == 0
@@ -386,9 +380,9 @@ def test_290_multiline_string_not_first_statement( ):
     y = 2
 '''
     violations = run_vbl101( code )
-    # BUG: Implementation detects blank lines in strings after assignments
-    # Line 3 (after x=1) and line 5 (inside string) are both flagged
-    assert len( violations ) == 2
+    # Only blank line between statements is detected (line 3)
+    # Blank lines inside string literal are correctly ignored
+    assert len( violations ) == 1
 
 
 #-----------------------------------------------------------------------------
@@ -427,16 +421,14 @@ def test_320_function_at_end_of_file( ):
 
 
 def test_330_function_with_blank_lines_in_string( ):
-    ''' Blank lines inside docstrings do not cause false positives. '''
-    # NOTE: Using docstring pattern instead of assignment
-    # due to implementation bug
+    ''' Blank lines inside string literals do not cause false positives. '''
     code = """def my_function():
-    '''
-    This is a docstring
+    text = '''
+    This is a string
 
     with blank lines
     '''
-    return 42
+    return text
 """
     violations = run_vbl101( code )
     assert len( violations ) == 0
