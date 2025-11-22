@@ -53,6 +53,8 @@ class VBL101( __.BaseRule ):
         # Collection: store function definitions and their line ranges
         self._function_ranges: list[
             tuple[ int, int, __.libcst.FunctionDef ] ] = [ ]
+        # Collection: store triple-quoted string literal line ranges
+        self._string_ranges: list[ tuple[ int, int ] ] = [ ]
 
     def visit_FunctionDef( self, node: __.libcst.FunctionDef ) -> bool:
         ''' Collects function definitions for later analysis. '''
@@ -68,6 +70,51 @@ class VBL101( __.BaseRule ):
             pass
         return True  # Continue visiting children
 
+    def visit_SimpleString( self, node: __.libcst.SimpleString ) -> bool:
+        ''' Collects triple-quoted string literal ranges. '''
+        # Only track triple-quoted strings (docstrings and multiline strings)
+        if node.quote in ( '"""', "'''" ):
+            try:
+                position = self.wrapper.resolve(
+                    __.libcst.metadata.PositionProvider )[ node ]
+                start_line = position.start.line
+                end_line = position.end.line
+                self._string_ranges.append( ( start_line, end_line ) )
+            except KeyError:
+                # Position not available, skip this string
+                pass
+        return True  # Continue visiting children
+
+    def visit_ConcatenatedString(
+        self, node: __.libcst.ConcatenatedString
+    ) -> bool:
+        ''' Collects concatenated string literal ranges. '''
+        # Check if any part is a triple-quoted string
+        has_triple_quote = False
+        for part in ( node.left, node.right ):
+            if isinstance( part, __.libcst.SimpleString ):
+                if part.quote in ( '"""', "'''" ):
+                    has_triple_quote = True
+                    break
+            elif (
+                isinstance( part, __.libcst.FormattedString )
+                and part.start in ( '"""', "'''" )
+            ):
+                # f-strings can also be triple-quoted
+                has_triple_quote = True
+                break
+        if has_triple_quote:
+            try:
+                position = self.wrapper.resolve(
+                    __.libcst.metadata.PositionProvider )[ node ]
+                start_line = position.start.line
+                end_line = position.end.line
+                self._string_ranges.append( ( start_line, end_line ) )
+            except KeyError:
+                # Position not available, skip this string
+                pass
+        return True  # Continue visiting children
+
     def _analyze_collections( self ) -> None:
         ''' Analyzes collected functions for blank lines between statements.
             Blank lines inside string literals are allowed.
@@ -75,31 +122,20 @@ class VBL101( __.BaseRule ):
         for start_line, end_line, _func_node in self._function_ranges:
             # Get function body start (after the def line)
             body_start = start_line + 1
-            in_string = False
-            string_delimiter = None
             for line_num in range( body_start, end_line + 1 ):
                 if line_num - 1 >= len( self.source_lines ): break
                 line = self.source_lines[ line_num - 1 ]
                 stripped = line.strip( )
-                # Track triple-quoted string literal state
-                if not in_string:
-                    # Check if this line starts a triple-quoted string
-                    starts_triple_double = stripped.startswith( '"""' )
-                    starts_triple_single = stripped.startswith( "'''" )
-                    if starts_triple_double or starts_triple_single:
-                        string_delimiter = stripped[ :3 ]
-                        in_string = True
-                        # Check if string closes on same line
-                        delimiter_count = stripped.count( string_delimiter )
-                        if delimiter_count >= 2:  # noqa: PLR2004
-                            in_string = False
-                elif string_delimiter and string_delimiter in stripped:
-                    # String ends on this line
-                    in_string = False
-                    string_delimiter = None
                 # Report violation for blank lines between statements
-                if not stripped and not in_string:
+                # Skip blank lines inside string literals
+                if not stripped and not self._is_in_string( line_num ):
                     self._report_blank_line( line_num )
+
+    def _is_in_string( self, line_num: int ) -> bool:
+        ''' Checks if line is inside a triple-quoted string literal. '''
+        return any(
+            start <= line_num <= end
+            for start, end in self._string_ranges )
 
     def _report_blank_line( self, line_num: int ) -> None:
         ''' Reports a violation for a blank line in function body. '''
