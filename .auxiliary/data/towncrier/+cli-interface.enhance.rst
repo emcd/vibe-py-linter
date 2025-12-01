@@ -1,1 +1,0 @@
-CLI: Interactive command-line interface with check command supporting multiple output formats (text, JSON), context display, rule selection, and parallel processing.

@@ -1,1 +1,0 @@
-Configuration: Support for pyproject.toml configuration files with rule selection, file path filtering, context line configuration, and per-rule settings.
