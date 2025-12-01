@@ -93,7 +93,7 @@ linkcheck_ignore = [
     r'https://github\.com/emcd/vibe-py-linter',
     r'https://github\.com/emcd/vibe-py-linter/.*',
     # Package does not exist during initial development.
-    r'https://pypi.org/project/vibelinter/',
+    r'https://pypi\.org/project/emcd-vibe-linter/.*',
     # Github aggressively rate-limits access to certain blobs.
     r'https://github\.com/.*/.*/blob/.*',
     # Avoid timeouts for slow sites.
