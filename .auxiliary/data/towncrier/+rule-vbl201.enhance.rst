@@ -1,0 +1,1 @@
+VBL201: Import hub enforcement rule ensures non-private imports only appear in designated hub modules (configurable via hub_patterns) to maintain architectural consistency and prevent namespace pollution.

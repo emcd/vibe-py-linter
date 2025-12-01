@@ -1,0 +1,1 @@
+VBL202: Import spaghetti prevention rule detects excessive relative import depth (more than 2 parent levels) and enforces proper import structure in re-export hub modules.
