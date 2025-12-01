@@ -1,0 +1,3 @@
+[tool.vibelinter]
+include = ["sources/**"]
+exclude_paths = ["tests/**", "build/**"]

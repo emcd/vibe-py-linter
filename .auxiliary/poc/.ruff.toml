@@ -1,0 +1,8 @@
+# Proof-of-concept specific Ruff configuration overrides
+# This configures Ruff (not vibelinter) when linting the POC scripts themselves
+[lint]
+ignore = [
+    "E501",     # line-too-long (proof of concept can be less strict)
+    "RET504",   # unnecessary-assignment (test files demonstrate patterns)
+    "TRY300",   # try-consider-else (simplified error handling for POC)
+]

@@ -1,0 +1,1 @@
+Core linting engine with LibCST integration for single-pass AST analysis, rule orchestration, and violation collection across multiple Python files.
