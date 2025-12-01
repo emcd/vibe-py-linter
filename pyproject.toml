@@ -19,6 +19,7 @@ dependencies = [
   'libcst',
   'tomli',
   'typing-extensions',
+  'wcmatch',
   # --- BEGIN: Injected by Copier ---
   'absence~=1.1',
   'dynadoc~=1.4',
@@ -101,7 +102,7 @@ strict-naming = false
 'sources/vibelinter' = 'vibelinter'
 # --- BEGIN: Injected by Copier ---
 'data' = 'vibelinter/data'
-# --- END: Injected by Copier --- 
+# --- END: Injected by Copier ---
 [tool.hatch.envs.default]
 python = '3.10'
 [tool.hatch.envs.develop]
@@ -378,9 +379,9 @@ ignore_decorators = [ '@__.abc.abstractmethod', '@__.typx.overload' ]
 ignore_names = [ 'main' ]
 
 [tool.vibelinter]
-select = ["VBL101", "VBL201"]
+select = [ 'VBL101', 'VBL201' ]
 context = 3
-exclude_paths = ["tests/**", ".venv/**"]
+exclude_paths = [ 'tests/**', '.auxiliary/**', '.venv/**' ]
 
 [tool.vibelinter.rules.VBL101]
 # Future: rule-specific configuration

@@ -612,9 +612,8 @@ def _matches_any_pattern(
     ''' Checks if file path matches any glob pattern. '''
     path_str = str( file_path )
     for pattern in patterns:
-        if file_path.match( pattern ):
-            return True
-        if path_str.startswith( pattern ):
+        if __.wcglob.globmatch(
+            path_str, pattern, flags = __.wcglob.GLOBSTAR ):
             return True
     return False
 

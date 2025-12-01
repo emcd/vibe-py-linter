@@ -39,6 +39,8 @@ import accretive as         accret
 import                      libcst
 import                      libcst.metadata
 import typing_extensions as typx
+import                      wcmatch
+import wcmatch.glob as      wcglob
 # --- BEGIN: Injected by Copier ---
 import dynadoc as           ddoc
 import frigid as            immut
