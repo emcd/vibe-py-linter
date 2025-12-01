@@ -45,7 +45,7 @@
    :target: https://pypi.org/project/emcd-vibe-linter/
 
 
-.. todo:: Provide project description and key features.
+A Python linter focused on enforcing code style and best practices with configurable rules.
 
 
 Installation 📦
@@ -98,7 +98,7 @@ Or, install via ``pip``:
     pip install emcd-vibe-linter
 
 
-.. todo:: Provide usage examples and additional content.
+See the documentation for detailed usage examples and configuration options.
 
 
 Contribution 🤝
