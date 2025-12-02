@@ -50,25 +50,35 @@ class VBL101( __.BaseRule ):
         source_lines: tuple[ str, ... ],
     ) -> None:
         super( ).__init__( filename, wrapper, source_lines )
-        # Collection: store function definitions and their line ranges
-        self._function_ranges: list[
-            tuple[ int, int, __.libcst.FunctionDef ] ] = [ ]
+        # Collection: store definition ranges (functions and classes)
+        self._definition_ranges: list[
+            tuple[ int, int, __.libcst.CSTNode ] ] = [ ]
         # Collection: store triple-quoted string literal line ranges
         self._string_ranges: list[ tuple[ int, int ] ] = [ ]
+        # State: track reported lines to prevent duplicates in nested scopes
+        self._reported_lines: set[ int ] = set( )
 
     def visit_FunctionDef( self, node: __.libcst.FunctionDef ) -> bool:
         ''' Collects function definitions for later analysis. '''
-        # Get the position of the function
+        self._collect_definition( node )
+        return True  # Continue visiting children
+
+    def visit_ClassDef( self, node: __.libcst.ClassDef ) -> bool:
+        ''' Collects class definitions for later analysis. '''
+        self._collect_definition( node )
+        return True  # Continue visiting children
+
+    def _collect_definition( self, node: __.libcst.CSTNode ) -> None:
+        ''' Helper to collect ranges for functions and classes. '''
         try:
             position = self.wrapper.resolve(
                 __.libcst.metadata.PositionProvider )[ node ]
             start_line = position.start.line
             end_line = position.end.line
-            self._function_ranges.append( ( start_line, end_line, node ) )
+            self._definition_ranges.append( ( start_line, end_line, node ) )
         except KeyError:
-            # Position not available, skip this function
+            # Position not available, skip this definition
             pass
-        return True  # Continue visiting children
 
     def visit_SimpleString( self, node: __.libcst.SimpleString ) -> bool:
         ''' Collects triple-quoted string literal ranges. '''
@@ -118,8 +128,16 @@ class VBL101( __.BaseRule ):
     def _analyze_collections( self ) -> None:
         ''' Analyzes collected functions for blank lines between statements.
             Blank lines inside string literals are allowed.
+            Blank lines around nested definitions are allowed.
         '''
-        for start_line, end_line, _func_node in self._function_ranges:
+        # Only analyze functions (skip classes as roots)
+        # But we need all definitions for the adjacency check.
+        function_nodes = [
+            ( s, e, n ) for s, e, n in self._definition_ranges
+            if isinstance( n, __.libcst.FunctionDef )
+        ]
+
+        for start_line, end_line, _func_node in function_nodes:
             # Get function body start (after the def line)
             body_start = start_line + 1
             for line_num in range( body_start, end_line + 1 ):
@@ -128,7 +146,12 @@ class VBL101( __.BaseRule ):
                 stripped = line.strip( )
                 # Report violation for blank lines between statements
                 # Skip blank lines inside string literals
-                if not stripped and not self._is_in_string( line_num ):
+                # Skip blank lines immediately around nested definitions
+                if (
+                    not stripped
+                    and not self._is_in_string( line_num )
+                    and not self._is_adjacent_to_definition( line_num )
+                ):
                     self._report_blank_line( line_num )
 
     def _is_in_string( self, line_num: int ) -> bool:
@@ -137,8 +160,16 @@ class VBL101( __.BaseRule ):
             start <= line_num <= end
             for start, end in self._string_ranges )
 
+    def _is_adjacent_to_definition( self, line_num: int ) -> bool:
+        ''' Checks if line is immediately before or after a definition. '''
+        return any(
+            line_num == start - 1 or line_num == end + 1
+            for start, end, _ in self._definition_ranges )
+
     def _report_blank_line( self, line_num: int ) -> None:
         ''' Reports a violation for a blank line in function body. '''
+        if line_num in self._reported_lines: return
+        self._reported_lines.add( line_num )
         from .. import violations as _violations
         violation = _violations.Violation(
             rule_id = self.rule_id,

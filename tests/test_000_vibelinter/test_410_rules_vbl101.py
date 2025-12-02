@@ -518,9 +518,10 @@ def test_400_nested_function_definitions( ):
     return inner()
 '''
     violations = run_vbl101( code )
-    # Implementation counts: line 3 (in outer),
-    # line 4 (before inner def, in outer), line 6 (in inner)
-    assert len( violations ) == 3
+    # Implementation counts:
+    # line 3 (before inner def) -> Allowed (adjacent to def)
+    # line 6 (in inner, between statements) -> Violation
+    assert len( violations ) == 1
 
 
 def test_410_nested_function_no_violations_outer( ):
@@ -535,8 +536,9 @@ def test_410_nested_function_no_violations_outer( ):
     return inner()
 '''
     violations = run_vbl101( code )
-    # Line 3 (in outer), line 4 (before inner def, in outer), line 6 (in inner)
-    assert len( violations ) == 3
+    # Line 3 (before inner def) -> Allowed
+    # Line 6 (in inner) -> Violation
+    assert len( violations ) == 1
 
 
 def test_420_closure_with_blank_lines( ):
@@ -551,8 +553,10 @@ def test_420_closure_with_blank_lines( ):
     return inner
 '''
     violations = run_vbl101( code )
-    # Line 3 (in outer), line 4 (before inner def, in outer), line 6 (in inner)
-    assert len( violations ) == 3
+    # Blank lines before nested defs also counted within outer functions
+    # Line 3 (before inner def) -> Allowed (adjacent to def)
+    # Line 7 (in inner) -> Violation
+    assert len( violations ) == 1
 
 
 def test_430_deeply_nested_functions( ):
@@ -569,11 +573,10 @@ def test_430_deeply_nested_functions( ):
     return level2()
 '''
     violations = run_vbl101( code )
-    # Blank lines before nested defs also counted within outer functions
-    # Line 2 (in level1), line 3 (before level2, in level1),
-    # line 4 (in level2), line 5 (before level3, in level2),
-    # line 7 (in level3), plus one more
-    assert len( violations ) == 6
+    # Blank lines before nested defs are now allowed.
+    # Only 1 violation remains: Line 7 (in level3, between x=1 and y=2).
+    # Others (before def level2, before def level3) are adjacent to defs.
+    assert len( violations ) == 1
 
 
 def test_440_lambda_expressions( ):
@@ -620,6 +623,57 @@ def my_function():
 '''
     violations = run_vbl101( code )
     assert len( violations ) == 1
+
+
+def test_480_nested_class_spacing( ):
+    ''' Blank lines around nested classes are allowed. '''
+    code = '''def outer():
+    x = 1
+
+    class Inner:
+        pass
+
+    return Inner()
+'''
+    violations = run_vbl101( code )
+    # Blank before class Inner (line 3) -> Allowed
+    # Blank after class Inner (line 6) -> Allowed
+    assert len( violations ) == 0
+
+
+def test_490_nested_def_spacing_details( ):
+    ''' Verify precise spacing rules around nested definitions. '''
+    code = '''def outer():
+    # Case 1: Blank before
+    x = 1
+
+    def inner1():
+        pass
+
+    # Case 2: Blank after
+    inner1()
+    # Case 3: No blank before
+    def inner2():
+        pass
+    # Case 4: No blank after
+    inner2()
+    # Case 5: Double blank before
+    y = 1
+
+
+    def inner3():
+        pass
+
+    return
+'''
+    violations = run_vbl101( code )
+    # L4: Blank before inner1 (L5) -> Allowed
+    # L7: Blank after inner1 (L6) -> Allowed
+    # L17: First blank before inner3 -> Violation (not adjacent)
+    # L18: Second blank before inner3 -> Allowed (adjacent to L19)
+    
+    assert len( violations ) == 1
+    assert violations[ 0 ].line == 17
 
 
 def test_480_staticmethod_and_classmethod( ):
