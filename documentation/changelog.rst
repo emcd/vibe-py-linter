@@ -23,6 +23,21 @@ Release Notes
 
 .. towncrier release notes start
 
+vibelinter 1.0a1 (2025-12-03)
+=============================
+
+Enhancements
+------------
+
+- Update VBL101 (Blank Line Elimination) to allow blank lines immediately surrounding nested function and class definitions for better readability.
+
+
+Repairs
+-------
+
+- Fix VBL201 (Import Hub Enforcement) to correctly recognize private aliases (e.g., ``import x as _x``) in simple imports, preventing false positive violations.
+
+
 vibelinter 1.0a0 (2025-11-30)
 =============================
 
