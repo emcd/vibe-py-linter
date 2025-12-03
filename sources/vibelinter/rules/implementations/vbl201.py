@@ -85,6 +85,9 @@ class VBL201( __.BaseRule ):
         # Allow imports inside function bodies (local imports)
         if self._function_depth > 0:
             return True
+        # Check if all imported names are private
+        if all( self._is_alias_private( alias ) for alias in node.names ):
+            return True
         self._simple_imports.append( node )
         return True
 
@@ -151,26 +154,21 @@ class VBL201( __.BaseRule ):
         if isinstance( node.names, __.libcst.ImportStar ):
             return False
         # Check each imported name
-        for name in node.names:
-            # Determine the resulting name in the module namespace
-            if isinstance( name.asname, __.libcst.AsName ):
-                # Has alias - check if alias is private
-                alias_name = name.asname.name
-                if isinstance( alias_name, __.libcst.Name ):
-                    resulting_name = alias_name.value
-                else:
-                    return False
-            else:
-                # No alias - check if original name is private
-                original_name = name.name
-                if isinstance( original_name, __.libcst.Name ):
-                    resulting_name = original_name.value
-                else:
-                    return False
-            # Must start with underscore to be private
-            if not resulting_name.startswith( '_' ):
-                return False
-        return True
+        return all( self._is_alias_private( alias ) for alias in node.names )
+
+    def _is_alias_private( self, alias: __.libcst.ImportAlias ) -> bool:
+        ''' Checks if an import alias results in a private name. '''
+        if isinstance( alias.asname, __.libcst.AsName ):
+            alias_name = alias.asname.name
+            if isinstance( alias_name, __.libcst.Name ):
+                return alias_name.value.startswith( '_' )
+            return False
+        node = alias.name
+        while isinstance( node, __.libcst.Attribute ):
+            node = node.value
+        if isinstance( node, __.libcst.Name ):
+            return node.value.startswith( '_' )
+        return False
 
     def _report_simple_import_violation(
         self, node: __.libcst.Import

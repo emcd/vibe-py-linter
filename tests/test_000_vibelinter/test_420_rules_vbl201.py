@@ -228,9 +228,7 @@ import json as _json
 import pathlib as _pathlib
 '''
     violations = run_vbl201( code, filename = 'regular.py' )
-    # NOTE: Current implementation may flag all simple imports
-    # This test documents actual behavior
-    assert len( violations ) == 2  # Simple imports are always flagged
+    assert len( violations ) == 0
 
 
 def test_220_private_from_import_alias( ):
