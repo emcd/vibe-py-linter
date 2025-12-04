@@ -28,11 +28,6 @@ Each design documents Python-specific architecture, interface contracts, module 
    :maxdepth: 2
    :glob:
 
-   linter-core
-   cli
-   configuration-integration
-   diagnostic-reporting
-   file-discovery
    ../openspec/specs/*/design
 
 

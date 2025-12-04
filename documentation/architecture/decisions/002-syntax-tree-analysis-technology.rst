@@ -114,13 +114,14 @@ Use Python's built-in ``ast`` module for syntax analysis.
 - **No transformation support**: Read-only analysis prevents future auto-fix features
 
 Example limitation:
-```python
-# AST cannot detect this blank line in function body
-def example():
-    x = 1
-    
-    return x  # Blank line above is invisible to AST
-```
+
+.. code-block:: python
+
+    # AST cannot detect this blank line in function body
+    def example():
+        x = 1
+        
+        return x  # Blank line above is invisible to AST
 
 **Alternative 2: Parso**
 
