@@ -369,6 +369,14 @@ directory = 'repair'
 name = 'Repairs'
 showcontent = true
 
+[tool.vibelinter]
+#select = [ 'VBL101', 'VBL201' ]
+context = 3
+exclude_paths = [ '.auxiliary/**', '.venv/**', 'tests/**',  ]
+
+[tool.vibelinter.rules.VBL101]
+# Future: rule-specific configuration
+
 [tool.vulture]
 paths = [ '.auxiliary/configuration/vulturefood.py', 'sources' ]
 min_confidence = 60
@@ -377,11 +385,3 @@ exclude = [
 ]
 ignore_decorators = [ '@__.abc.abstractmethod', '@__.typx.overload' ]
 ignore_names = [ 'main' ]
-
-[tool.vibelinter]
-select = [ 'VBL101', 'VBL201' ]
-context = 3
-exclude_paths = [ 'tests/**', '.auxiliary/**', '.venv/**' ]
-
-[tool.vibelinter.rules.VBL101]
-# Future: rule-specific configuration

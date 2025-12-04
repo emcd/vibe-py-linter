@@ -1,1 +1,0 @@
-VBL101: Blank line elimination rule detects unnecessary blank lines in function bodies while preserving blank lines inside docstrings and string literals.
