@@ -109,11 +109,11 @@ python = '3.10'
 description = ''' Development environment. '''
 builder = true
 dependencies = [
-  'Jinja2',
   'coverage[toml]',
+  'emcd-vibe-linter',
   'furo',
   'isort',
-  'packaging',
+  'myst-parser',
   'pre-commit',
   'psutil',
   'pyfakefs',
@@ -146,6 +146,7 @@ docsgen = [
 ]
 linters = [
   """ruff check --quiet sources documentation tests""",
+  """vibelinter check""",
   # --- BEGIN: Injected by Copier ---
   # --- END: Injected by Copier ---
   """isort --check-only --diff sources tests""",

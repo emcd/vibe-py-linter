@@ -21,14 +21,19 @@
 Designs
 *******************************************************************************
 
+This section contains technical design specifications for capabilities.
+Each design documents Python-specific architecture, interface contracts, module organization, and implementation patterns.
+
 .. toctree::
    :maxdepth: 2
+   :glob:
 
    linter-core
    cli
    configuration-integration
    diagnostic-reporting
    file-discovery
+   ../openspec/specs/*/design
 
 
 Current Designs
