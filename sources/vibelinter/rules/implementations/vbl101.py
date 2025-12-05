@@ -136,7 +136,6 @@ class VBL101( __.BaseRule ):
             ( s, e, n ) for s, e, n in self._definition_ranges
             if isinstance( n, __.libcst.FunctionDef )
         ]
-
         for start_line, end_line, _func_node in function_nodes:
             # Get function body start (after the def line)
             body_start = start_line + 1

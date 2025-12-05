@@ -56,6 +56,11 @@ class EngineConfiguration( __.immut.DataclassObject ):
         bool,
         __.ddoc.Doc(
             'Whether to extract source context for violations.' ) ] = True
+    per_file_ignores: __.typx.Annotated[
+        __.immut.Dictionary[ str, tuple[ str, ... ] ],
+        __.ddoc.Doc(
+            'Per-file rule exclusions.'
+        ) ] = __.dcls.field( default_factory = lambda: __.immut.Dictionary( ) )
 
 
 class Report( __.immut.DataclassObject ):
@@ -162,6 +167,101 @@ class Engine:
         all_violations.sort( key = lambda v: ( v.line, v.column ) )
         return all_violations
 
+    def _extract_suppressions(
+        self, source_lines: tuple[ str, ... ]
+    ) -> dict[ int, bool | set[ str ] ]:
+        ''' Extracts suppression comments from source lines.
+
+            Returns map of line_number -> (True for all rules, or code set).
+        '''
+        suppressions: dict[ int, bool | set[ str ] ] = { }
+        for i, line in enumerate( source_lines ):
+            if '#' not in line:
+                continue
+            # Simple split on first # is safer to find the START of comment
+            comment_start = line.find( '#' )
+            comment_text = line[ comment_start + 1: ].strip( )
+            if 'noqa' not in comment_text:
+                continue
+            # Split into parts to handle "nosec # noqa: ..."
+            parts = comment_text.split( )
+            # Check for bare noqa
+            # Avoid matching "noqa" inside other words
+            if 'noqa' in parts and not any(
+                p.startswith( 'noqa:' ) for p in parts
+            ):
+                suppressions[ i + 1 ] = True
+                continue
+            # Check for specific codes
+            for part in parts:
+                if part.startswith( 'noqa:' ):
+                    codes_str = part[ 5: ]
+                    codes = {
+                        c.strip( ) for c in codes_str.split( ',' )
+                        if c.strip( ) }
+                    self._add_suppression( suppressions, i + 1, codes )
+            # Robust parsing for noqa: ...
+            if 'noqa:' in comment_text:
+                noqa_idx = comment_text.find( 'noqa:' )
+                code_text = comment_text[ noqa_idx + 5: ]
+                codes = {
+                    c.strip( ) for c in code_text.split( ',' )
+                    if c.strip( ) }
+                valid_codes = {
+                    c for c in codes if c and not c.startswith( '#' ) }
+                self._add_suppression( suppressions, i + 1, valid_codes )
+        return suppressions
+
+    def _add_suppression(
+        self,
+        suppressions: dict[ int, bool | set[ str ] ],
+        line_number: int,
+        codes: set[ str ]
+    ) -> None:
+        ''' Helper to add codes to suppression map. '''
+        suppression = suppressions.get( line_number )
+        if isinstance( suppression, set ):
+            suppression.update( codes )
+        else:
+            suppressions[ line_number ] = codes
+
+    def _filter_violations(
+        self,
+        violations: list[ _violations.Violation ],
+        suppressions: dict[ int, bool | set[ str ] ],
+        filename: str,
+    ) -> list[ _violations.Violation ]:
+        ''' Filters violations based on suppressions and per-file ignores. '''
+        if not violations:
+            return violations
+        filtered: list[ _violations.Violation ] = [ ]
+        # 1. Per-file ignores from configuration
+        ignored_rules: set[ str ] = set( )
+        # Convert filename to Path for glob matching
+        file_path = __.pathlib.Path( filename )
+        for pattern, rules in self.configuration.per_file_ignores.items( ):
+            # Use wcmatch via __ import
+            if __.wcglob.globmatch(
+                str( file_path ), pattern, flags = __.wcglob.GLOBSTAR
+            ):
+                ignored_rules.update( rules )
+        for violation in violations:
+            # Check per-file ignores
+            if violation.rule_id in ignored_rules:
+                continue
+            # Check inline suppressions
+            if violation.line in suppressions:
+                suppression = suppressions[ violation.line ]
+                if suppression is True:
+                    continue
+                if (
+                    isinstance( suppression, set )
+                    and violation.rule_id in suppression
+                ):
+                    continue
+            filtered.append( violation )
+        return filtered
+
     def lint_source(
         self,
         source_code: __.typx.Annotated[
@@ -181,17 +281,21 @@ class Engine:
         rules = self._instantiate_rules( wrapper, source_lines, filename )
         self._execute_rules( rules, wrapper )
         all_violations = self._collect_violations( rules )
+        # Filter violations
+        suppressions = self._extract_suppressions( source_lines )
+        filtered_violations = self._filter_violations(
+            all_violations, suppressions, filename )
         violation_contexts: tuple[
             _violations.ViolationContext, ... ] = ( )
-        if self.configuration.include_context and all_violations:
+        if self.configuration.include_context and filtered_violations:
             violation_contexts = _context.extract_contexts_for_violations(
-                all_violations,
+                filtered_violations,
                 source_lines,
                 self.configuration.context_size )
         analysis_duration_ms = (
             ( __.time.perf_counter( ) - analysis_start_time ) * 1000 )
         return Report(
-            violations = tuple( all_violations ),
+            violations = tuple( filtered_violations ),
             contexts = violation_contexts,
             filename = filename,
             rule_count = len( rules ),

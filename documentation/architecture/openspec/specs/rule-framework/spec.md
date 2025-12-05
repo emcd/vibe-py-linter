@@ -2,9 +2,7 @@
 
 ## Purpose
 To provide the general mechanisms for rule management, discovery, configuration, and suppression within the linter.
-
 ## Requirements
-
 ### Requirement: Rule Discovery (REQ-005)
 The system SHALL provide a mechanism to discover and understand available rules.
 
@@ -23,12 +21,15 @@ Priority: Medium
 ### Requirement: Rule Suppression
 The system SHALL support suppressing rule violations via configuration or inline comments.
 
-Priority: High
+#### Scenario: Suppressing via comment (Specific Rule)
+- **WHEN** a line contains a comment ending with `# noqa: VBL101`
+- **THEN** violations of rule `VBL101` on that line are ignored
 
-#### Scenario: Suppressing via comment
-- **WHEN** a line contains a `noqa` or specific suppression comment
-- **THEN** violations on that line are ignored
+#### Scenario: Suppressing via comment (All Rules)
+- **WHEN** a line contains a comment ending with `# noqa`
+- **THEN** all violations on that line are ignored
 
-#### Scenario: Suppressing via configuration
-- **WHEN** a rule is explicitly disabled in the configuration file
-- **THEN** the rule is not executed during analysis
+#### Scenario: Suppressing via configuration (Per-File)
+- **WHEN** a file matches a per-file ignore pattern for a specific rule
+- **THEN** violations of that rule in that file are ignored
+

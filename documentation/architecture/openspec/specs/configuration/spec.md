@@ -2,9 +2,7 @@
 
 ## Purpose
 To allow streamlined configuration management without destructive file editing, enabling users to customize the linter for their project needs.
-
 ## Requirements
-
 ### Requirement: Configuration Commands
 The system SHALL provide a `configure` subcommand for configuration management.
 
@@ -33,3 +31,12 @@ Priority: Medium
 - **WHEN** a setting is defined in CLI args, `pyproject.toml`, and defaults
 - **THEN** CLI args take precedence over `pyproject.toml`
 - **AND** `pyproject.toml` takes precedence over defaults
+
+### Requirement: Per-File Rule Exclusion
+The system SHALL support disabling specific rules for specific file patterns via configuration.
+
+#### Scenario: Ignoring rules for test files
+- **WHEN** the configuration contains `per-file-ignores` mapping `tests/**/*.py` to `["VBL101"]`
+- **THEN** rule `VBL101` is not enforced on files matching `tests/**/*.py`
+- **AND** other rules are still enforced
+

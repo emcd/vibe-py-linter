@@ -48,11 +48,10 @@ class ConfigurationAbsence( _exceptions.Omnierror, FileNotFoundError ):
     ) -> None:
         self.location = (
             None if __.is_absent( location ) else str( location ) )
-        message = (
-            'No pyproject.toml found in current or parent directories'
+        super( ).__init__(
+            "No pyproject.toml found in current or parent directories"
             if __.is_absent( location )
-            else f'Configuration file not found: {location}' )
-        super( ).__init__( message )
+            else f"Configuration file not found: {location}" )
 
 
 class Configuration( __.immut.DataclassObject ):
@@ -80,6 +79,10 @@ class Configuration( __.immut.DataclassObject ):
     rule_parameters: __.typx.Annotated[
         __.immut.Dictionary[ str, __.immut.Dictionary[ str, __.typx.Any ] ],
         __.ddoc.Doc( 'Per-rule configuration parameters.' )
+    ] = __.dcls.field( default_factory = lambda: __.immut.Dictionary( ) )
+    per_file_ignores: __.typx.Annotated[
+        __.immut.Dictionary[ str, tuple[ str, ... ] ],
+        __.ddoc.Doc( 'Per-file rule exclusions.' )
     ] = __.dcls.field( default_factory = lambda: __.immut.Dictionary( ) )
 
 
@@ -146,6 +149,7 @@ def _parse_configuration(
         data, 'exclude_paths', location )
     context = _parse_optional_int( data, 'context', location )
     rule_parameters = _parse_rule_parameters( data, location )
+    per_file_ignores = _parse_per_file_ignores( data, location )
     return Configuration(
         select = select,
         exclude_rules = exclude_rules,
@@ -153,6 +157,7 @@ def _parse_configuration(
         exclude_paths = exclude_paths,
         context = context,
         rule_parameters = rule_parameters,
+        per_file_ignores = per_file_ignores,
     )
 
 
@@ -201,6 +206,48 @@ def _parse_rule_parameters(
                 f'got {typename}' )
         param_dict = __.typx.cast( dict[ str, __.typx.Any ], params )
         result[ rule_code ] = __.immut.Dictionary( param_dict )
+    return __.immut.Dictionary( result )
+
+
+def _parse_per_file_ignores(
+    data: __.cabc.Mapping[ str, __.typx.Any ],
+    location: PathLike,
+) -> __.immut.Dictionary[ str, tuple[ str, ... ] ]:
+    ''' Parses [tool.vibelinter.per-file-ignores]. '''
+    ignores_section: __.typx.Any = data.get( 'per-file-ignores', { } )
+    if not isinstance( ignores_section, dict ):
+        typename = type( ignores_section ).__name__
+        raise ConfigurationInvalidity(
+            location, f'"per-file-ignores" must be a table, got {typename}' )
+    result: dict[ str, tuple[ str, ... ] ] = { }
+    section_dict = __.typx.cast(
+        dict[ __.typx.Any, __.typx.Any ], ignores_section )
+    for pattern, rules in section_dict.items( ):
+        if not isinstance( pattern, str ):
+            typename: str = type( pattern ).__name__
+            raise ConfigurationInvalidity(
+                location,
+                f'Per-file-ignores pattern must be string, got {typename}' )
+        if isinstance( rules, str ):
+            result[ pattern ] = ( rules, )
+            continue
+        if not isinstance( rules, list ):
+            typename = type( rules ).__name__
+            raise ConfigurationInvalidity(
+                location,
+                f'Per-file-ignores rules for "{pattern}" must be list, '
+                f'got {typename}' )
+        rules_list = __.typx.cast( list[ __.typx.Any ], rules )
+        rule_list: list[ str ] = [ ]
+        for i, rule in enumerate( rules_list ):
+            if not isinstance( rule, str ):
+                typename = type( rule ).__name__
+                raise ConfigurationInvalidity(
+                    location,
+                    f'Rule in "{pattern}"[{i}] must be string, '
+                    f'got {typename}' )
+            rule_list.append( rule )
+        result[ pattern ] = tuple( rule_list )
     return __.immut.Dictionary( result )
 
 

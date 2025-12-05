@@ -1,0 +1,6 @@
+[tool.vibelinter]
+context = 2
+
+[tool.vibelinter.per-file-ignores]
+"tests/**/*.py" = ["VBL101", "VBL201"]
+"legacy/module.py" = "VBL001"

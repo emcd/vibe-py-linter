@@ -980,6 +980,26 @@ def test_625_violations_from_multiple_files_independent( mock_registry, minimal_
         assert reports[ 0 ].filename != reports[ 1 ].filename
 
 
+def test_630_integration_suppression_works( mock_registry ):
+    ''' Inline suppression works in end-to-end workflow. '''
+    module = __.cache_import_module( f"{__.PACKAGE_NAME}.engine" )
+    config = module.EngineConfiguration(
+        enabled_rules = frozenset( [ 'TEST001' ] )
+    )
+    engine = module.Engine( mock_registry, config )
+    
+    # TEST001 reports error on every FunctionDef
+    source = '''def valid(): # noqa: TEST001
+    pass
+
+def invalid():
+    pass
+'''
+    report = engine.lint_source( source, 'test.py' )
+    assert len( report.violations ) == 1
+    assert report.violations[ 0 ].line == 4  # invalid() is on line 4
+
+
 @pytest.mark.skip( reason = 'Performance expectations not met on all platforms' )
 def test_650_analysis_completes_within_performance_budget( mock_registry, minimal_config ):
     ''' Analysis completes within performance budget. '''

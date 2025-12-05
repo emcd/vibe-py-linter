@@ -290,6 +290,21 @@ def test_180_loads_configuration_with_rule_parameters( ):
         assert 'VBL201' in config.rule_parameters
 
 
+def test_182_loads_configuration_with_per_file_ignores( ):
+    ''' Configuration loading works with per-file ignores. '''
+    module = __.cache_import_module( f"{__.PACKAGE_NAME}.configuration" )
+    with Patcher( ) as patcher:
+        patcher.fs.add_real_directory(
+            'tests/data/configuration/valid', lazy_read = True )
+        config = module.load_configuration(
+            'tests/data/configuration/valid/per-file-ignores.toml' )
+        assert 'tests/**/*.py' in config.per_file_ignores
+        assert config.per_file_ignores[ 'tests/**/*.py' ] == (
+            'VBL101', 'VBL201' )
+        assert 'legacy/module.py' in config.per_file_ignores
+        assert config.per_file_ignores[ 'legacy/module.py' ] == ( 'VBL001', )
+
+
 def test_185_raises_absence_for_missing_file( ):
     ''' Configuration loading raises ConfigurationAbsence for missing file. '''
     module = __.cache_import_module( f"{__.PACKAGE_NAME}.configuration" )
