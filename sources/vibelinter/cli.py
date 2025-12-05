@@ -29,6 +29,8 @@ from . import __
 from . import configuration as _configuration
 from . import engine as _engine
 from . import rules as _rules
+# Ensure registry is available for type hints
+from .rules import registry as _registry
 
 
 class DiffFormats( __.enum.Enum ):
@@ -66,7 +68,10 @@ class DisplayOptions( _appcore_cli.DisplayOptions ):
 RuleSelectorArgument: __.typx.TypeAlias = __.typx.Annotated[
     str,
     __.tyro.conf.arg( prefix_name = False ),
-    __.ddoc.Doc( ''' Comma-separated VBL rule codes (e.g. VBL101,VBL201). ''' )
+    __.ddoc.Doc(
+        ''' Comma-separated rule identifiers '''
+        ''' (e.g. VBL101, function-ordering). '''
+    )
 ]
 PathsArgument: __.typx.TypeAlias = __.tyro.conf.Positional[
     tuple[ str, ... ]
@@ -289,7 +294,8 @@ class CheckCommand( __.immut.DataclassObject ):
             async with __.ctxl.AsyncExitStack( ) as exits:
                 await _render_and_print_result( result, display, exits )
             return 0
-        enabled_rules = _merge_rule_selection( self.select, config )
+        enabled_rules = _merge_rule_selection(
+            self.select, config, _rules.create_registry_manager( ) )
         context_size = _merge_context_size( display.context, config )
         rule_parameters: __.immut.Dictionary[
             str, __.immut.Dictionary[ str, __.typx.Any ] ]
@@ -633,25 +639,44 @@ def _merge_context_size(
     return typed_config.context
 
 
+def _resolve_rule_set(
+    identifiers: __.cabc.Iterable[ str ],
+    registry_manager: _registry.RuleRegistryManager,
+) -> set[ str ]:
+    ''' Resolves a sequence of rule identifiers to codes. '''
+    codes: set[ str ] = set( )
+    for raw_identifier in identifiers:
+        identifier = raw_identifier.strip( )
+        if not identifier:
+            continue
+        code = registry_manager.resolve_rule_identifier( identifier )
+        codes.add( code )
+    return codes
+
+
 def _merge_rule_selection(
     cli_selection: __.Absential[ str ],
     config: __.Absential[ __.typx.Any ],
+    registry_manager: _registry.RuleRegistryManager,
 ) -> frozenset[ str ]:
     ''' Merges rule selection from CLI and configuration. '''
     from .rules.implementations.__ import RULE_DESCRIPTORS
     all_rules = frozenset( RULE_DESCRIPTORS.keys( ) )
     if not __.is_absent( cli_selection ):
-        codes = cli_selection.split( ',' )
-        return frozenset( code.strip( ) for code in codes )
+        return frozenset( _resolve_rule_set(
+            cli_selection.split( ',' ), registry_manager ) )
     if __.is_absent( config ):
         return all_rules
     typed_config = __.typx.cast( _configuration.Configuration, config )
     if not __.is_absent( typed_config.select ):
-        selected = set( typed_config.select )
+        selected = _resolve_rule_set(
+            typed_config.select, registry_manager )
     else:
         selected = set( all_rules )
     if not __.is_absent( typed_config.exclude_rules ):
-        selected -= set( typed_config.exclude_rules )
+        excluded = _resolve_rule_set(
+            typed_config.exclude_rules, registry_manager )
+        selected -= excluded
     return frozenset( selected )
 
 

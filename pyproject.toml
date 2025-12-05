@@ -373,7 +373,13 @@ showcontent = true
 [tool.vibelinter]
 #select = [ 'VBL101', 'VBL201' ]
 context = 3
-exclude_paths = [ '.auxiliary/**', '.venv/**', 'tests/**',  ]
+exclude_paths = [ '.auxiliary/**', '.venv/**' ]
+
+[tool.vibelinter.per-file-ignores]
+"tests/**/*.py" = [
+  "VBL201", # import-hub-enforcement
+  "VBL202", # import-spaghetti-detection
+]
 
 [tool.vibelinter.rules.VBL101]
 # Future: rule-specific configuration
