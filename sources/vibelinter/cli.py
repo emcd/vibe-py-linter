@@ -299,15 +299,19 @@ class CheckCommand( __.immut.DataclassObject ):
         context_size = _merge_context_size( display.context, config )
         rule_parameters: __.immut.Dictionary[
             str, __.immut.Dictionary[ str, __.typx.Any ] ]
+        per_file_ignores: __.immut.Dictionary[ str, tuple[ str, ... ] ]
         if __.is_absent( config ):
             rule_parameters = __.immut.Dictionary( )
+            per_file_ignores = __.immut.Dictionary( )
         else:
             rule_parameters = config.rule_parameters
+            per_file_ignores = config.per_file_ignores
         configuration = _engine.EngineConfiguration(
             enabled_rules = enabled_rules,
             context_size = context_size,
             include_context = context_size > 0,
             rule_parameters = rule_parameters,
+            per_file_ignores = per_file_ignores,
         )
         registry_manager = _rules.create_registry_manager( )
         engine = _engine.Engine( registry_manager, configuration )
