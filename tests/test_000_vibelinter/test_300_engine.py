@@ -987,7 +987,6 @@ def test_630_integration_suppression_works( mock_registry ):
         enabled_rules = frozenset( [ 'TEST001' ] )
     )
     engine = module.Engine( mock_registry, config )
-    
     # TEST001 reports error on every FunctionDef
     source = '''def valid(): # noqa: TEST001
     pass

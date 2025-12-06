@@ -155,7 +155,6 @@ from .. import foo
     # Test with path containing hub pattern
     violations = run_vbl202( code, filename = 'some/path/__.py' )
     assert len( violations ) == 0
-
     violations = run_vbl202( code, filename = 'deep/nested/path/__.py' )
     assert len( violations ) == 0
 
@@ -182,7 +181,6 @@ from .. import foo
         reexport_hub_patterns = ( 'reexports.py', ),
     )
     assert len( violations ) == 0
-
     # With custom pattern that doesn't match
     violations = run_vbl202(
         code,
@@ -277,7 +275,6 @@ from ... import foo
     assert len( violations ) == 1
     assert violations[ 0 ].severity == 'error'
     assert '3' in violations[ 0 ].message
-
     # Even in re-export hub
     violations = run_vbl202( code, filename = '__.py' )
     assert len( violations ) == 1
@@ -543,25 +540,21 @@ def test_610_config_multiple_hub_patterns( ):
 from .. import foo
 '''
     patterns = ( '__.py', 'reexports.py', 'hub.py' )
-
     # __.py should be recognized
     violations = run_vbl202(
         code, filename = '__.py', reexport_hub_patterns = patterns
     )
     assert len( violations ) == 0
-
     # reexports.py should be recognized
     violations = run_vbl202(
         code, filename = 'reexports.py', reexport_hub_patterns = patterns
     )
     assert len( violations ) == 0
-
     # hub.py should be recognized
     violations = run_vbl202(
         code, filename = 'hub.py', reexport_hub_patterns = patterns
     )
     assert len( violations ) == 0
-
     # regular.py should not be recognized
     violations = run_vbl202(
         code, filename = 'regular.py', reexport_hub_patterns = patterns
@@ -576,14 +569,12 @@ from .. import foo
 '''
     patterns1 = ( '__.py', 'hub.py' )
     patterns2 = ( 'hub.py', '__.py' )
-
     violations1 = run_vbl202(
         code, filename = '__.py', reexport_hub_patterns = patterns1
     )
     violations2 = run_vbl202(
         code, filename = '__.py', reexport_hub_patterns = patterns2
     )
-
     assert len( violations1 ) == len( violations2 ) == 0
 
 
@@ -602,7 +593,6 @@ from ..parent import helpers
 '''
     violations = run_vbl202( reexport_code, filename = 'package/sub/__.py' )
     assert len( violations ) == 0
-
     # Regular module in same location
     regular_code = '''
 from . import local

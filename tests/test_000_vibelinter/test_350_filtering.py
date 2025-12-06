@@ -35,7 +35,6 @@ def create_engine_with_config( **kwargs ):
     engine_module = __.cache_import_module( f"{__.PACKAGE_NAME}.engine" )
     registry_module = __.cache_import_module(
         f"{__.PACKAGE_NAME}.rules.registry" )
-    
     config = engine_module.EngineConfiguration(
         enabled_rules = frozenset( [ 'TEST001' ] ),
         **kwargs
@@ -85,10 +84,8 @@ def test_015_extract_suppressions_noqa_specific( ):
         'z = 3'
     )
     suppressions = engine._extract_suppressions( source_lines )
-    
     assert 1 in suppressions
     assert suppressions[ 1 ] == { 'VBL101' }
-    
     assert 2 in suppressions
     assert suppressions[ 2 ] == { 'VBL101', 'VBL102' }
 
@@ -131,7 +128,6 @@ def test_050_filter_violations_inline_generic( ):
     }
     filtered = engine._filter_violations(
         violations, suppressions, 'test.py' )
-    
     assert len( filtered ) == 1
     assert filtered[ 0 ].rule_id == 'VBL102'
 
@@ -148,7 +144,6 @@ def test_055_filter_violations_inline_specific( ):
     }
     filtered = engine._filter_violations(
         violations, suppressions, 'test.py' )
-    
     assert len( filtered ) == 1
     assert filtered[ 0 ].rule_id == 'VBL102'
 
@@ -160,17 +155,14 @@ def test_060_filter_violations_per_file_ignores( ):
         '**/*.py': ( 'VBL201', ),
     } )
     engine = create_engine_with_config( per_file_ignores = ignores )
-    
     violations = [
         create_violation( 'VBL101', 1, 'test.py' ),
         create_violation( 'VBL102', 1, 'test.py' ),
         create_violation( 'VBL201', 1, 'test.py' ),
     ]
-    
     # Empty suppressions
     filtered = engine._filter_violations(
         violations, { }, 'test.py' )
-    
     assert len( filtered ) == 1
     assert filtered[ 0 ].rule_id == 'VBL102'
 
@@ -181,15 +173,12 @@ def test_065_filter_violations_per_file_ignores_glob( ):
         'tests/**/*.py': ( 'VBL101', ),
     } )
     engine = create_engine_with_config( per_file_ignores = ignores )
-    
     violations = [
         create_violation( 'VBL101', 1, 'tests/unit/test_foo.py' ),
         create_violation( 'VBL102', 1, 'tests/unit/test_foo.py' ),
     ]
-    
     filtered = engine._filter_violations(
         violations, { }, 'tests/unit/test_foo.py' )
-    
     assert len( filtered ) == 1
     assert filtered[ 0 ].rule_id == 'VBL102'
 
@@ -200,19 +189,15 @@ def test_070_filter_violations_combined( ):
         'test.py': ( 'VBL101', ),
     } )
     engine = create_engine_with_config( per_file_ignores = ignores )
-    
     violations = [
         create_violation( 'VBL101', 1 ),  # Ignored by file config
         create_violation( 'VBL102', 2 ),  # Suppressed inline
         create_violation( 'VBL103', 3 ),  # Kept
     ]
-    
     suppressions = {
         2: True,
     }
-    
     filtered = engine._filter_violations(
         violations, suppressions, 'test.py' )
-    
     assert len( filtered ) == 1
     assert filtered[ 0 ].rule_id == 'VBL103'
