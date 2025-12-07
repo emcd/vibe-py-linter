@@ -1,0 +1,2 @@
+Support descriptive rule names (e.g., ``import-hub-enforcement``) alongside VBL codes in CLI arguments, per-file ignores, and inline suppressions.
+Maintains backward compatibility with existing VBL codes.
