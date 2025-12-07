@@ -23,6 +23,25 @@ Release Notes
 
 .. towncrier release notes start
 
+vibelinter 1.0a2 (2025-12-06)
+=============================
+
+Enhancements
+------------
+
+- Add support for inline ``# noqa`` suppressions and per-file ignores in configuration.
+  Users can now suppress specific violations inline or configure files to ignore certain rules.
+- Support descriptive rule names (e.g., ``import-hub-enforcement``) alongside VBL codes in CLI arguments, per-file ignores, and inline suppressions.
+  Maintains backward compatibility with existing VBL codes.
+
+
+Repairs
+-------
+
+- Fix per-file ignores configuration not being applied from ``pyproject.toml``.
+  Previously, ignore rules specified in configuration were silently ignored.
+
+
 vibelinter 1.0a1 (2025-12-03)
 =============================
 
