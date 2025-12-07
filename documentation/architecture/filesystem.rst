@@ -102,14 +102,19 @@ Rule modules use the **VBL** (malodorous) prefix with semantic series organizati
     VBL[Series][Number].py where:
 
     Series:
-    - 1XX: Readability (function body compactness, nomenclature clarity)
-    - 2XX: Discoverability (function ordering, code navigation)
+    - 1XX: Readability (function body compactness, nomenclature clarity, formatting)
+    - 2XX: Discoverability (function ordering, code navigation, import structure)
     - 3XX: Robustness (Postel's Law, type variance, defensive patterns)
+    - 4XX: Correctness (likely bugs, unreachable code, anti-patterns)
+    - 5XX: Maintainability (complexity, coupling, long-term code health)
+    - 6XX: Consistency (project-specific conventions, uniform patterns)
 
     Examples:
     - VBL101: Blank line elimination (readability/compactness)
     - VBL102: Simple naming conventions (readability/nomenclature)
-    - VBL201: Function ordering (discoverability/navigation)
+    - VBL103: Bracket spacing (readability/formatting)
+    - VBL201: Import hub enforcement (discoverability/architecture)
+    - VBL202: Import spaghetti prevention (discoverability/architecture)
     - VBL301: Collection type variance (robustness/Postel's Law)
 
 This system provides:
