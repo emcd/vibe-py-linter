@@ -191,7 +191,6 @@ import json
     # Test with path containing hub pattern
     violations = run_vbl201( code, filename = 'some/path/__init__.py' )
     assert len( violations ) == 0
-    
     violations = run_vbl201( code, filename = 'deep/nested/path/__.py' )
     assert len( violations ) == 0
 
@@ -462,7 +461,6 @@ import json
         hub_patterns = ( '__.py', ),
     )
     assert len( violations ) == 0
-
     # Verify the path didn't match without wildcard prefix logic
     # by using a pattern that won't match the base filename
     violations = run_vbl201(
@@ -500,7 +498,6 @@ import json
         code, filename = 'regular.py', hub_patterns = ( 'custom_hub.py', )
     )
     assert len( violations ) == 1
-
     # With custom patterns including regular.py, it becomes a hub
     violations = run_vbl201(
         code, filename = 'regular.py', hub_patterns = ( 'regular.py', )
@@ -527,14 +524,12 @@ import json
 '''
     patterns1 = ( '__init__.py', '__.py', '__main__.py' )
     patterns2 = ( '__main__.py', '__.py', '__init__.py' )
-
     violations1 = run_vbl201(
         code, filename = '__init__.py', hub_patterns = patterns1
     )
     violations2 = run_vbl201(
         code, filename = '__init__.py', hub_patterns = patterns2
     )
-
     assert len( violations1 ) == len( violations2 ) == 0
 
 

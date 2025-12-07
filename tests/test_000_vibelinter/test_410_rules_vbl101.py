@@ -671,7 +671,6 @@ def test_490_nested_def_spacing_details( ):
     # L7: Blank after inner1 (L6) -> Allowed
     # L17: First blank before inner3 -> Violation (not adjacent)
     # L18: Second blank before inner3 -> Allowed (adjacent to L19)
-    
     assert len( violations ) == 1
     assert violations[ 0 ].line == 17
 
