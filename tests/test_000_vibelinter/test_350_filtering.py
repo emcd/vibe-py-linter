@@ -183,6 +183,40 @@ def test_065_filter_violations_per_file_ignores_glob( ):
     assert filtered[ 0 ].rule_id == 'VBL102'
 
 
+def test_067_filter_violations_per_file_ignores_descriptive_names( ):
+    ''' Filters violations using descriptive rule names. '''
+    engine_module = __.cache_import_module( f"{__.PACKAGE_NAME}.engine" )
+    registry_module = __.cache_import_module(
+        f"{__.PACKAGE_NAME}.rules.registry" )
+    mock_descriptor = registry_module.RuleDescriptor(
+        vbl_code = 'VBL101',
+        descriptive_name = 'blank-line-elimination',
+        description = 'Test rule',
+        category = 'test',
+        subcategory = 'test',
+        rule_class = object,
+    )
+    registry = registry_module.RuleRegistryManager( {
+        'VBL101': mock_descriptor,
+    } )
+    ignores = immut.Dictionary( {
+        'test.py': ( 'blank-line-elimination', ),
+    } )
+    config = engine_module.EngineConfiguration(
+        enabled_rules = frozenset( [ 'TEST001' ] ),
+        per_file_ignores = ignores,
+    )
+    engine = engine_module.Engine( registry, config )
+    violations = [
+        create_violation( 'VBL101', 1, 'test.py' ),
+        create_violation( 'VBL102', 1, 'test.py' ),
+    ]
+    filtered = engine._filter_violations(
+        violations, { }, 'test.py' )
+    assert len( filtered ) == 1
+    assert filtered[ 0 ].rule_id == 'VBL102'
+
+
 def test_070_filter_violations_combined( ):
     ''' Filters violations using both inline and per-file methods. '''
     ignores = immut.Dictionary( {

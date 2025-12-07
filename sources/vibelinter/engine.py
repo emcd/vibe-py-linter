@@ -225,6 +225,26 @@ class Engine:
         else:
             suppressions[ line_number ] = codes
 
+    def _resolve_rule_identifiers(
+        self,
+        identifiers: tuple[ str, ... ]
+    ) -> set[ str ]:
+        ''' Resolves rule identifiers to VBL codes. '''
+        resolved: set[ str ] = set( )
+        for identifier in identifiers:
+            # Try to resolve as VBL code or descriptive name
+            vbl_code = self._try_resolve_identifier( identifier )
+            resolved.add( vbl_code )
+        return resolved
+
+    def _try_resolve_identifier( self, identifier: str ) -> str:
+        ''' Attempts to resolve identifier, returns original on failure. '''
+        try:
+            return self.registry_manager.resolve_rule_identifier(
+                identifier )
+        except Exception:
+            return identifier
+
     def _filter_violations(
         self,
         violations: list[ _violations.Violation ],
@@ -244,7 +264,9 @@ class Engine:
             if __.wcglob.globmatch(
                 str( file_path ), pattern, flags = __.wcglob.GLOBSTAR
             ):
-                ignored_rules.update( rules )
+                # Resolve descriptive names to VBL codes
+                resolved_rules = self._resolve_rule_identifiers( rules )
+                ignored_rules.update( resolved_rules )
         for violation in violations:
             # Check per-file ignores
             if violation.rule_id in ignored_rules:
@@ -254,11 +276,12 @@ class Engine:
                 suppression = suppressions[ violation.line ]
                 if suppression is True:
                     continue
-                if (
-                    isinstance( suppression, set )
-                    and violation.rule_id in suppression
-                ):
-                    continue
+                if isinstance( suppression, set ):
+                    # Resolve descriptive names in suppression set
+                    resolved_suppression = self._resolve_rule_identifiers(
+                        tuple( suppression ) )
+                    if violation.rule_id in resolved_suppression:
+                        continue
             filtered.append( violation )
         return filtered
 
