@@ -185,4 +185,15 @@ __.RULE_DESCRIPTORS[ 'VBL202' ] = __.RuleDescriptor(
     category = 'imports',
     subcategory = 'architecture',
     rule_class = VBL202,
+    violation_message = 'Excessive relative import depth',
+    examples = (
+        '# Violation\n'
+        '# In module_a/b/c/d.py\n'
+        'from ....module_x import something  # 4 levels up\n'
+        '\n'
+        '# Fix\n'
+        '# Reorganize imports through hub\n'
+        'from . import __  # Import hub\n'
+        'from ..module_x import something  # Use hub imports'
+    )
 )

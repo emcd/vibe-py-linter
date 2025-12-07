@@ -234,4 +234,15 @@ __.RULE_DESCRIPTORS[ 'VBL201' ] = __.RuleDescriptor(
     category = 'imports',
     subcategory = 'architecture',
     rule_class = VBL201,
+    violation_message = 'Import from non-hub module',
+    examples = (
+        '# Violation\n'
+        '# In module_a.py\n'
+        'from module_b import something  # module_b is not a hub\n'
+        '\n'
+        '# Fix\n'
+        '# In module_a.py\n'
+        'from . import __  # Import hub first\n'
+        'from .module_b import something  # Then import from hub'
+    )
 )

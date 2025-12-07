@@ -53,6 +53,12 @@ class RuleDescriptor( __.immut.DataclassObject ):
     rule_class: __.typx.Annotated[
         type,
         __.ddoc.Doc( 'Rule class for instantiation.' ) ]
+    violation_message: __.typx.Annotated[
+        str,
+        __.ddoc.Doc( 'Template for violation messages.' ) ] = ''
+    examples: __.typx.Annotated[
+        str,
+        __.ddoc.Doc( 'Examples of violations and fixes.' ) ] = ''
 
 
 # Type aliases for registry

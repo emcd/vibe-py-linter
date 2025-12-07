@@ -381,6 +381,9 @@ exclude_paths = [ '.auxiliary/**', '.venv/**' ]
   "import-hub-enforcement", # VBL201
   "import-spaghetti-detection", # VBL202
 ]
+"sources/vibelinter/rules/**/*.py" = [
+  "import-spaghetti-detection", # VBL202
+]
 
 [tool.vibelinter.rules.VBL101]
 # Future: rule-specific configuration

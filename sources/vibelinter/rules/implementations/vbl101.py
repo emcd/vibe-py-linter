@@ -188,4 +188,17 @@ __.RULE_DESCRIPTORS[ 'VBL101' ] = __.RuleDescriptor(
     category = 'readability',
     subcategory = 'compactness',
     rule_class = VBL101,
+    violation_message = 'Blank line between statements in function body',
+    examples = (
+        '# Violation\n'
+        'def func():\n'
+        '    x = 1\n'
+        '    \n'
+        '    y = 2  # Blank line here\n'
+        '\n'
+        '# Fix  \n'
+        'def func():\n'
+        '    x = 1\n'
+        '    y = 2  # No blank line'
+    )
 )

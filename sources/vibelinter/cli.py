@@ -209,39 +209,88 @@ class ConfigureResult( RenderableResult ):
 class DescribeRulesResult( RenderableResult ):
     ''' Result from describe rules command execution. '''
 
-    details: bool
-
-    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
-        ''' Renders result as JSON-compatible dictionary. '''
-        return { 'details': self.details }
-
-    def render_as_text( self ) -> tuple[ str, ... ]:
-        ''' Renders result as text lines. '''
-        return (
-            'Available rules',
-            f'  Details: {self.details}',
-        )
-
-
-class DescribeRuleResult( RenderableResult ):
-    ''' Result from describe rule command execution. '''
-
-    rule_id: str
+    rules: tuple[ _registry.RuleDescriptor, ... ]
     details: bool
 
     def render_as_json( self ) -> dict[ str, __.typx.Any ]:
         ''' Renders result as JSON-compatible dictionary. '''
         return {
-            'rule_id': self.rule_id,
+            'rules': [
+                {
+                    'vbl_code': rule.vbl_code,
+                    'descriptive_name': rule.descriptive_name,
+                    'description': rule.description,
+                    'category': rule.category,
+                    'subcategory': rule.subcategory,
+                }
+                for rule in self.rules
+            ],
             'details': self.details,
         }
 
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders result as text lines. '''
-        return (
-            f'Rule: {self.rule_id}',
-            f'  Details: {self.details}',
-        )
+        lines = [ 'Available rules:' ]
+        for rule in sorted( self.rules, key = lambda r: r.descriptive_name ):
+            if self.details:
+                lines.append(
+                    f'  {rule.descriptive_name} ({rule.vbl_code}) - '
+                    f'{rule.category}/{rule.subcategory}' )
+            else:
+                lines.append(
+                    f'  {rule.descriptive_name} ({rule.vbl_code})' )
+        return tuple( lines )
+
+
+class DescribeRuleResult( RenderableResult ):
+    ''' Result from describe rule command execution. '''
+
+    rule: _registry.RuleDescriptor
+    details: bool
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders result as JSON-compatible dictionary. '''
+        return {
+            'vbl_code': self.rule.vbl_code,
+            'descriptive_name': self.rule.descriptive_name,
+            'description': self.rule.description,
+            'category': self.rule.category,
+            'subcategory': self.rule.subcategory,
+            'violation_message': self.rule.violation_message,
+            'examples': self.rule.examples,
+            'details': self.details,
+        }
+
+    def render_as_text( self ) -> tuple[ str, ... ]:
+        ''' Renders result as text lines. '''
+        lines = [
+            f'Rule: {self.rule.descriptive_name} ({self.rule.vbl_code})',
+            '',
+            f'Description: {self.rule.description}',
+            '',
+            f'Category: {self.rule.category}/{self.rule.subcategory}',
+        ]
+        if self.details:
+            lines.extend( [
+                '',
+                'Configuration Status: '
+                '(configuration display not yet implemented)',
+            ] )
+        lines.extend( [
+            '',
+            f'Violation Message: {self.rule.violation_message}',
+            '',
+            'Examples:',
+        ] )
+        # Split examples by lines and indent them
+        if self.rule.examples:
+            lines.extend(
+                f'  {example_line}'
+                for example_line in self.rule.examples.split( '\n' )
+            )
+        else:
+            lines.append( '  (No examples provided)' )
+        return tuple( lines )
 
 
 class ServeResult( RenderableResult ):
@@ -409,7 +458,9 @@ class DescribeRulesCommand( __.immut.DataclassObject ):
 
     async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the describe rules command. '''
-        result = DescribeRulesResult( details = self.details )
+        registry_manager = _rules.create_registry_manager( )
+        rules = registry_manager.survey_available_rules( )
+        result = DescribeRulesResult( rules = rules, details = self.details )
         async with __.ctxl.AsyncExitStack( ) as exits:
             await _render_and_print_result( result, display, exits )
         return 0
@@ -429,8 +480,11 @@ class DescribeRuleCommand( __.immut.DataclassObject ):
 
     async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the describe rule command. '''
+        registry_manager = _rules.create_registry_manager( )
+        vbl_code = registry_manager.resolve_rule_identifier( self.rule_id )
+        rule_descriptor = registry_manager.registry[ vbl_code ]
         result = DescribeRuleResult(
-            rule_id = self.rule_id,
+            rule = rule_descriptor,
             details = self.details,
         )
         async with __.ctxl.AsyncExitStack( ) as exits:
