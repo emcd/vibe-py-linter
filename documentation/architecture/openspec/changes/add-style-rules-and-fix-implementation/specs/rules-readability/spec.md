@@ -145,3 +145,44 @@ Priority: Medium
 
 - **WHEN** a multi-line docstring doesn't follow indentation conventions
 - **THEN** a violation is reported with guidance on proper formatting
+
+### Requirement: Line Length and Reformatting (VBL109)
+
+The system SHALL enforce maximum line length and provide intelligent reformatting using a "left center of gravity" algorithm.
+
+Priority: High
+
+#### Scenario: Line exceeds maximum length
+
+- **WHEN** a line exceeds 79 characters
+- **THEN** a violation is reported with suggested reformatting
+
+#### Scenario: Progressive breaking
+
+- **WHEN** reformatting a long expression
+- **THEN** the reformatter applies breaks progressively (content to next line, then closing to own line, then one-per-line, then recurse into nested)
+
+#### Scenario: Collection trailing commas
+
+- **WHEN** a multi-line collection has closing delimiter on its own line
+- **THEN** a trailing comma is added after the last element
+
+#### Scenario: Function call no trailing comma
+
+- **WHEN** a multi-line function call is reformatted
+- **THEN** no trailing comma is added (function calls exempt)
+
+#### Scenario: Positional and keyword argument grouping
+
+- **WHEN** a function call is reformatted
+- **THEN** positional arguments are kept together and keyword arguments are kept together
+
+#### Scenario: Single-line body threshold
+
+- **WHEN** a control flow statement with single-statement body is evaluated
+- **THEN** single-line form is used if total length is within threshold (default 70% of max line length)
+
+#### Scenario: Configurable threshold
+
+- **WHEN** the user configures `single_line_threshold_ratio = 0.60`
+- **THEN** the compaction threshold adjusts accordingly

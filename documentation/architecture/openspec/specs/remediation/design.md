@@ -405,6 +405,212 @@ sources/vibelinter/
 └── cli.py                      # FixCommand implementation
 ```
 
+## Line Reformatting Design
+
+### Overview
+
+Line reformatting addresses violations where content exceeds the maximum
+line length (79 characters per style guide). The algorithm uses a "left
+center of gravity" approach: earlier/higher lines in a multi-line
+expression should be lighter (fewer tokens), with content flowing downward.
+
+### Progressive Breaking Algorithm
+
+When a line exceeds the limit, the reformatter applies breaks progressively
+until the line fits. Each step adds one level of breaking:
+
+| Step | Action | Trailing Comma |
+|------|--------|----------------|
+| 1 | Move content after opening delimiter to next line; closing stays with content | No |
+| 2 | Move closing delimiter to its own line | Yes (collections) / No (calls) |
+| 3 | Split elements one-per-line | Yes (collections) / No (calls) |
+| 4+ | Recurse into nested structures | Inherit context |
+
+### Visual Progression
+
+```
+Step 0 (violation):
+config = { 'name': 'example', 'settings': { 'timeout': 30, 'retries': 3 }, 'enabled': True }
+
+Step 1 (content to next line):
+config = {
+    'name': 'example', 'settings': { 'timeout': 30, 'retries': 3 }, 'enabled': True }
+
+Step 2 (closing to own line, trailing comma added):
+config = {
+    'name': 'example', 'settings': { 'timeout': 30, 'retries': 3 }, 'enabled': True,
+}
+
+Step 3 (one-per-line):
+config = {
+    'name': 'example',
+    'settings': { 'timeout': 30, 'retries': 3 },
+    'enabled': True,
+}
+
+Step 4 (recurse into nested):
+config = {
+    'name': 'example',
+    'settings': {
+        'timeout': 30, 'retries': 3 },
+    'enabled': True,
+}
+```
+
+### Function Call Constraints
+
+Function calls have additional constraints beyond collections:
+
+- **Positional/nominative grouping**: Keep positional arguments together,
+  keep keyword arguments together
+- **No trailing comma**: Function calls omit trailing comma after final
+  argument (per style guide)
+- **Closing on content line**: Closing parenthesis stays on same line as
+  final argument unless one-per-line mode
+
+``` python
+# Step 0 (violation):
+result = process_data( input_file, output_file, format = 'json', validate = True, strict = False )
+
+# Step 1 (content to next line, args grouped):
+result = process_data(
+    input_file, output_file,
+    format = 'json', validate = True, strict = False )
+
+# Step 2 (one-per-line, no trailing comma):
+result = process_data(
+    input_file,
+    output_file,
+    format = 'json',
+    validate = True,
+    strict = False )
+```
+
+### Single-Line Body Compaction
+
+Control flow statements (`if`, `for`, `while`, `try`, `except`, `with`)
+with single-statement bodies use a threshold-based decision for single-line
+vs multi-line form.
+
+#### Threshold Configuration
+
+``` python
+class LineLengthConfiguration( __.immut.DataclassObject ):
+    ''' Configuration for line length and compaction rules. '''
+    max_line_length: __.typx.Annotated[
+        int, __.ddoc.Doc( 'Maximum line length.' ) ] = 79
+    single_line_threshold_ratio: __.typx.Annotated[
+        float,
+        __.ddoc.Doc(
+            'Ratio of max_line_length for single-line body compaction. '
+            'If statement + body <= max_line_length * ratio, use single-line.'
+        ) ] = 0.70
+```
+
+With defaults: `79 * 0.70 = 55.3` → single-line if total ≤ 55 characters.
+
+#### Compaction Rules
+
+| Condition | Action |
+|-----------|--------|
+| Total length ≤ threshold | Use single-line: `if x: return y` |
+| Total length > threshold | Use multi-line form |
+| Body has multiple statements | Always multi-line |
+| Body contains nested control flow | Always multi-line |
+
+#### Examples
+
+``` python
+# Short enough for single-line (≤55 chars):
+if not data: return None
+for item in items: process( item )
+try: value = op( )
+except ValueError: return default
+
+# Too long for single-line (>55 chars):
+if not validate_input( data ):
+    return InvalidInputError( "Validation failed." )
+
+# Multiple statements - always multi-line:
+if error:
+    log_error( error )
+    raise error
+```
+
+### Algorithm Implementation
+
+``` python
+class LineReformatter:
+    ''' Reformats lines exceeding length limit using left-gravity algorithm. '''
+
+    def __init__( self, config: LineLengthConfiguration ) -> None:
+        self._config = config
+        self._threshold = int(
+            config.max_line_length * config.single_line_threshold_ratio )
+
+    def reformat_expression(
+        self,
+        node: __.libcst.CSTNode,
+        current_indent: int,
+    ) -> __.libcst.CSTNode:
+        ''' Progressively breaks expression until it fits line limit. '''
+        for break_level in range( 1, self._max_break_level( node ) + 1 ):
+            reformatted = self._apply_break_level( node, break_level, current_indent )
+            if self._fits_line_limit( reformatted, current_indent ):
+                return reformatted
+        return reformatted  # Best effort if still too long
+
+    def should_compact_body(
+        self,
+        control_node: __.libcst.CSTNode,
+        body_node: __.libcst.CSTNode,
+    ) -> bool:
+        ''' Determines if control flow body should use single-line form. '''
+        if self._has_multiple_statements( body_node ): return False
+        if self._has_nested_control_flow( body_node ): return False
+        total_length = self._estimate_single_line_length( control_node, body_node )
+        return total_length <= self._threshold
+
+    def _apply_break_level(
+        self,
+        node: __.libcst.CSTNode,
+        level: int,
+        indent: int,
+    ) -> __.libcst.CSTNode:
+        ''' Applies specific break level to node. '''
+        match level:
+            case 1: return self._move_content_to_next_line( node, indent )
+            case 2: return self._move_closing_to_own_line( node, indent )
+            case 3: return self._split_elements_per_line( node, indent )
+            case _: return self._recurse_into_nested( node, level - 3, indent )
+```
+
+### Trailing Comma Logic
+
+``` python
+def _needs_trailing_comma(
+    self,
+    node: __.libcst.CSTNode,
+    break_level: int,
+) -> bool:
+    ''' Determines if trailing comma should be added. '''
+    # Function calls never get trailing commas
+    if isinstance( node, __.libcst.Call ): return False
+    # Collections get trailing comma when closing is on own line (level >= 2)
+    if isinstance( node, ( __.libcst.List, __.libcst.Dict, __.libcst.Set, __.libcst.Tuple ) ):
+        return break_level >= 2
+    return False
+```
+
+### Safety Classification
+
+Line reformatting fixes are classified as **Safe** because:
+
+- Changes are purely whitespace/formatting
+- No semantic impact on code execution
+- Preserves all tokens and their order
+- Only affects visual layout
+
 ## Design Validation
 
 ### Practices Compliance

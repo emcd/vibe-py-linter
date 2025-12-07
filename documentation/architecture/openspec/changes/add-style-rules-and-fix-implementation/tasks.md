@@ -19,13 +19,15 @@
 - [ ] 3.4 Implement VBL106 (single-line body compaction) with fix support
 - [ ] 3.5 Implement VBL107 (trailing comma enforcement) with fix support
 - [ ] 3.6 Implement VBL108 (docstring formatting) with fix support
-- [ ] 3.7 Register all new rules in `implementations/__init__.py`
+- [ ] 3.7 Create `LineReformatter` class with left-gravity algorithm
+- [ ] 3.8 Implement VBL109 (line length and reformatting) with fix support
+- [ ] 3.9 Register all new rules in `implementations/__init__.py`
 
 ## 4. Testing
 
 - [ ] 4.1 Add unit tests for fix infrastructure (`test_4XX_fixable.py`)
 - [ ] 4.2 Add unit tests for fix engine (`test_4XX_fixer.py`)
-- [ ] 4.3 Add unit tests for each style rule (VBL103-108)
+- [ ] 4.3 Add unit tests for each style rule (VBL103-109)
 - [ ] 4.4 Add integration tests for fix command
 
 ## 5. Documentation
