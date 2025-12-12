@@ -797,8 +797,27 @@ Test decorated functions are analyzed (decorator doesn't affect body).
 
 **Expected behavior**: One violation.
 
-test_480_staticmethod_and_classmethod
--------------------------------------------------------------------------------
+test_480_nested_class_spacing
+------------------------------------------------------------------------------
+
+Test that blank lines around nested classes are allowed.
+
+**Code example**:
+
+.. code-block:: python
+
+   def outer():
+       x = 1
+
+       class Inner:
+           pass
+
+       return Inner()
+
+**Expected behavior**: No violations (blank lines before and after nested class are allowed).
+
+test_481_staticmethod_and_classmethod
+------------------------------------------------------------------------------
 
 Test static and class methods are analyzed.
 
@@ -821,8 +840,42 @@ Test static and class methods are analyzed.
 
 **Expected behavior**: Two violations.
 
-test_490_function_with_multi_statement_lines
--------------------------------------------------------------------------------
+test_490_nested_def_spacing_details
+------------------------------------------------------------------------------
+
+Verify precise spacing rules around nested definitions.
+
+**Code example**:
+
+.. code-block:: python
+
+   def outer():
+       # Case 1: Blank before
+       x = 1
+
+       def inner1():
+           pass
+
+       # Case 2: Blank after
+       inner1()
+       # Case 3: No blank before
+       def inner2():
+           pass
+       # Case 4: No blank after
+       inner2()
+       # Case 5: Double blank before
+       y = 1
+
+
+       def inner3():
+           pass
+
+       return
+
+**Expected behavior**: One violation (first blank before inner3, second blank is adjacent).
+
+test_491_function_with_multi_statement_lines
+------------------------------------------------------------------------------
 
 Test that only truly blank lines are detected (not lines with semicolons).
 
@@ -1126,14 +1179,15 @@ Coverage Goals
 Test Count Estimate
 -------------------------------------------------------------------------------
 
-* Basic functionality: 6 tests
-* Simple blank line detection: 9 tests
-* String literal handling: 10 tests
-* Edge cases and boundaries: 9 tests
-* Nested functions and complex scenarios: 10 tests
-* Integration and metadata: 6 tests
+* Basic functionality: 6 tests (000-099)
+* Simple blank line detection: 9 tests (100-199)
+* String literal handling: 10 tests (200-299)
+* Edge cases and boundaries: 9 tests (300-399)
+* Nested functions and complex scenarios: 12 tests (400-499)
+* Integration and metadata: 6 tests (500-599)
+* Decorator bug fix tests: 8 tests (600-699)
 
-**Total**: ~50 tests
+**Total**: ~60 tests
 
 Validation Criteria
 -------------------------------------------------------------------------------
@@ -1152,57 +1206,182 @@ Tests must validate:
 * ✓ Edge cases are handled gracefully
 * ✓ No false positives for blank lines inside any string literal
 
-Potential Challenges
+Decorator Bug Fix Tests (600-699)
 ===============================================================================
 
-1. **String literal tracking complexity**
+Additional tests added to address VBL101 bug where decorators masked detection
+of nested function and class definitions. These tests verify that blank lines
+before decorated nested definitions are correctly allowed.
 
-   * Challenge: Ensuring string literal state machine is correct
-   * Solution: Comprehensive tests of string literal scenarios (200-299 range)
+test_600_decorated_nested_function_allows_blank_line
+------------------------------------------------------------------------------
 
-2. **Nested function position ranges**
+Test that blank line before decorated nested function is allowed.
 
-   * Challenge: Ensuring nested function ranges don't interfere
-   * Solution: Explicit tests of nested scenarios (400-499 range)
+**Code example**:
 
-3. **Metadata provider integration**
+.. code-block:: python
 
-   * Challenge: Creating proper test setup with PositionProvider
-   * Solution: Helper fixture abstracts wrapper creation (500-599 range)
+   def outer():
+       x = 1
 
-4. **Source line boundary conditions**
+       @decorator
+       def inner():
+           y = 2
+           return y
+       return inner()
 
-   * Challenge: Edge cases at file end or with mismatched metadata
-   * Solution: Boundary tests (300-399 range) and defensive test design
+**Expected behavior**: No violations (blank line before decorator is allowed).
 
-Priority and Implementation Order
-===============================================================================
+test_610_decorated_nested_class_allows_blank_line
+------------------------------------------------------------------------------
 
-**High Priority** (implement first):
+Test that blank line before decorated nested class is allowed.
 
-1. Basic functionality tests (000-099) - Foundation
-2. Simple blank line detection (100-199) - Core feature
-3. String literal handling (200-299) - Critical for avoiding false positives
+**Code example**:
 
-**Medium Priority** (implement second):
+.. code-block:: python
 
-4. Edge cases (300-399) - Robustness
-5. Integration tests (500-599) - Verify metadata integration
+   def outer():
+       x = 1
 
-**Lower Priority** (implement last):
+       @decorator
+       class Inner:
+           pass
+       return Inner()
 
-6. Nested functions (400-499) - Advanced scenarios
+**Expected behavior**: No violations (blank line before decorator is allowed).
 
-Estimated Complexity
--------------------------------------------------------------------------------
+test_620_multiple_decorators_nested_function
+------------------------------------------------------------------------------
 
-**Medium complexity** - VBL101 testing is straightforward with well-defined
-behavior, but requires careful testing of docstring state tracking and nested
-function scenarios.
+Test that blank line before nested function with multiple decorators is allowed.
 
-Implementation Priority
--------------------------------------------------------------------------------
+**Code example**:
 
-**High priority** - VBL101 currently has only 15% coverage and is an active
-rule in the linter. Comprehensive testing is needed to ensure correctness and
-prevent regressions.
+.. code-block:: python
+
+   def outer():
+       x = 1
+
+       @decorator1
+       @decorator2
+       def inner():
+           y = 2
+           return y
+       return inner()
+
+**Expected behavior**: No violations (blank line before first decorator is allowed).
+
+test_630_decorated_nested_function_with_blank_inside
+------------------------------------------------------------------------------
+
+Test that blank line inside decorated nested function is still violation.
+
+**Code example**:
+
+.. code-block:: python
+
+   def outer():
+       x = 1
+
+       @decorator
+       def inner():
+           y = 2
+
+           return y
+       return inner()
+
+**Expected behavior**: One violation (blank line inside inner function).
+
+test_640_blank_line_after_decorated_nested_def
+------------------------------------------------------------------------------
+
+Test that blank line after decorated nested definition is allowed.
+
+**Code example**:
+
+.. code-block:: python
+
+   def outer():
+       x = 1
+
+       @decorator
+       def inner():
+           y = 2
+           return y
+
+       return inner()
+
+**Expected behavior**: No violations (blank lines before and after are allowed).
+
+test_650_mixed_decorated_and_undecorated_nested
+------------------------------------------------------------------------------
+
+Test mixed decorated and undecorated nested definitions work correctly.
+
+**Code example**:
+
+.. code-block:: python
+
+   def outer():
+       x = 1
+
+       def inner1():
+           y = 2
+           return y
+
+       @decorator
+       def inner2():
+           z = 3
+           return z
+       return inner1() + inner2()
+
+**Expected behavior**: No violations (blank lines before both nested definitions allowed).
+
+test_660_decorated_nested_with_blank_between_decorators
+------------------------------------------------------------------------------
+
+Test blank line between decorators is violation (not adjacent to def).
+
+**Code example**:
+
+.. code-block:: python
+
+   def outer():
+       x = 1
+
+       @decorator1
+
+       @decorator2
+       def inner():
+           y = 2
+           return y
+       return inner()
+
+**Expected behavior**: One violation (blank line between decorators).
+
+test_670_complex_nested_decorated_hierarchy
+------------------------------------------------------------------------------
+
+Test complex nested hierarchy with decorated definitions works.
+
+**Code example**:
+
+.. code-block:: python
+
+   def outer():
+       x = 1
+
+       @decorator1
+       def middle():
+           y = 2
+
+           @decorator2
+           def inner():
+               z = 3
+               return z
+           return inner()
+       return middle()
+
+**Expected behavior**: One violation (blank line in middle function).

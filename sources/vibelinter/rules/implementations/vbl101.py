@@ -75,6 +75,19 @@ class VBL101( __.BaseRule ):
                 __.libcst.metadata.PositionProvider )[ node ]
             start_line = position.start.line
             end_line = position.end.line
+            # If node has decorators, adjust start_line to first decorator line
+            # Check node type to access decorators attribute safely
+            if (
+                isinstance(
+                    node, ( __.libcst.FunctionDef, __.libcst.ClassDef ) )
+                and node.decorators
+            ):
+                # Get position of first decorator
+                first_decorator = node.decorators[ 0 ]
+                decorator_position = self.wrapper.resolve(
+                    __.libcst.metadata.PositionProvider
+                )[ first_decorator ]
+                start_line = decorator_position.start.line
             self._definition_ranges.append( ( start_line, end_line, node ) )
         except KeyError:
             # Position not available, skip this definition

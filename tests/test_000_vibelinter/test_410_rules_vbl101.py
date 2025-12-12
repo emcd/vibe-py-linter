@@ -675,7 +675,7 @@ def test_490_nested_def_spacing_details( ):
     assert violations[ 0 ].line == 17
 
 
-def test_480_staticmethod_and_classmethod( ):
+def test_481_staticmethod_and_classmethod( ):
     ''' Static and class methods are analyzed. '''
     code = '''class MyClass:
     @staticmethod
@@ -694,7 +694,7 @@ def test_480_staticmethod_and_classmethod( ):
     assert len( violations ) == 2
 
 
-def test_490_function_with_multi_statement_lines( ):
+def test_491_function_with_multi_statement_lines( ):
     ''' Only truly blank lines are detected (not lines with semicolons). '''
     code = '''def my_function():
     x = 1; y = 2
@@ -809,3 +809,157 @@ def test_550_baseline_rule_framework_compliance( ):
     assert len( rule.violations ) > 0
     # Full compliance with BaseRule interface observable
     # through proper violation generation
+
+
+#-----------------------------------------------------------------------------
+# Decorator Bug Fix Tests (600-699)
+#-----------------------------------------------------------------------------
+
+
+def test_600_decorated_nested_function_allows_blank_line( ):
+    ''' Blank line before decorated nested function is allowed. '''
+    code = '''def outer():
+    x = 1
+
+    @decorator
+    def inner():
+        y = 2
+        return y
+    return inner()
+'''
+    violations = run_vbl101( code )
+    # Line 3 (blank before @decorator) should be allowed
+    assert len( violations ) == 0
+
+
+def test_610_decorated_nested_class_allows_blank_line( ):
+    ''' Blank line before decorated nested class is allowed. '''
+    code = '''def outer():
+    x = 1
+
+    @decorator
+    class Inner:
+        pass
+    return Inner()
+'''
+    violations = run_vbl101( code )
+    # Line 3 (blank before @decorator) should be allowed
+    assert len( violations ) == 0
+
+
+def test_620_multiple_decorators_nested_function( ):
+    ''' Blank line before nested function with multiple decorators allowed. '''
+    code = '''def outer():
+    x = 1
+
+    @decorator1
+    @decorator2
+    def inner():
+        y = 2
+        return y
+    return inner()
+'''
+    violations = run_vbl101( code )
+    # Line 3 (blank before first decorator) should be allowed
+    assert len( violations ) == 0
+
+
+def test_630_decorated_nested_function_with_blank_inside( ):
+    ''' Blank line inside decorated nested function is still violation. '''
+    code = '''def outer():
+    x = 1
+
+    @decorator
+    def inner():
+        y = 2
+
+        return y
+    return inner()
+'''
+    violations = run_vbl101( code )
+    # Line 3 (blank before @decorator) should be allowed
+    # Line 7 (blank inside inner function) should be violation
+    assert len( violations ) == 1
+    assert violations[ 0 ].line == 7
+
+
+def test_640_blank_line_after_decorated_nested_def( ):
+    ''' Blank line after decorated nested definition is allowed. '''
+    code = '''def outer():
+    x = 1
+
+    @decorator
+    def inner():
+        y = 2
+        return y
+
+    return inner()
+'''
+    violations = run_vbl101( code )
+    # Line 3 (blank before @decorator) should be allowed
+    # Line 9 (blank after inner function) should be allowed
+    assert len( violations ) == 0
+
+
+def test_650_mixed_decorated_and_undecorated_nested( ):
+    ''' Mixed decorated and undecorated nested definitions work correctly. '''
+    code = '''def outer():
+    x = 1
+
+    def inner1():
+        y = 2
+        return y
+
+    @decorator
+    def inner2():
+        z = 3
+        return z
+    return inner1() + inner2()
+'''
+    violations = run_vbl101( code )
+    # Line 3 (blank before inner1) should be allowed
+    # Line 7 (blank before @decorator) should be allowed
+    assert len( violations ) == 0
+
+
+def test_660_decorated_nested_with_blank_between_decorators( ):
+    ''' Blank line between decorators is violation (not adjacent to def). '''
+    code = '''def outer():
+    x = 1
+
+    @decorator1
+
+    @decorator2
+    def inner():
+        y = 2
+        return y
+    return inner()
+'''
+    violations = run_vbl101( code )
+    # Line 3 (blank before first decorator) should be allowed
+    # Line 5 (blank between decorators) should be violation
+    assert len( violations ) == 1
+    assert violations[ 0 ].line == 5
+
+
+def test_670_complex_nested_decorated_hierarchy( ):
+    ''' Complex nested hierarchy with decorated definitions works. '''
+    code = '''def outer():
+    x = 1
+
+    @decorator1
+    def middle():
+        y = 2
+
+        @decorator2
+        def inner():
+            z = 3
+            return z
+        return inner()
+    return middle()
+'''
+    violations = run_vbl101( code )
+    # Line 3 (blank before @decorator1) should be allowed
+    # Line 6 (blank before @decorator2) should be allowed
+    # Line 8 (blank before inner) is part of decorator position
+    assert len( violations ) == 0
