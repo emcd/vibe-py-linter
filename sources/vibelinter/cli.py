@@ -67,7 +67,7 @@ class DisplayOptions( _appcore_cli.DisplayOptions ):
 
 
 RuleSelectorArgument: __.typx.TypeAlias = __.typx.Annotated[
-    str,
+    __.typx.Optional[ str ],
     __.tyro.conf.arg( prefix_name = False ),
     __.ddoc.Doc(
         ''' Comma-separated rule identifiers '''
@@ -105,7 +105,7 @@ class CheckResult( RenderableResult ):
     reports: tuple[ __.typx.Any, ... ]  # Engine Report objects
     total_violations: int
     total_files: int
-    rule_selection: __.Absential[ str ] = __.absent
+    rule_selection: __.typx.Optional[ str ] = None
 
     def render_as_json( self ) -> dict[ str, __.typx.Any ]:
         ''' Renders result as JSON-compatible dictionary. '''
@@ -127,7 +127,7 @@ class CheckResult( RenderableResult ):
             'total_violations': self.total_violations,
             'total_files': self.total_files,
         }
-        if not __.is_absent( self.rule_selection ):
+        if self.rule_selection is not None:
             result[ 'rule_selection' ] = self.rule_selection
         return result
 
@@ -161,7 +161,7 @@ class FixResult( RenderableResult ):
     total_applied: int
     total_skipped: int
     total_conflicts: int
-    rule_selection: __.Absential[ str ] = __.absent
+    rule_selection: __.typx.Optional[ str ] = None
 
     def render_as_json( self ) -> dict[ str, __.typx.Any ]:
         ''' Renders result as JSON-compatible dictionary. '''
@@ -187,7 +187,7 @@ class FixResult( RenderableResult ):
             'total_skipped': self.total_skipped,
             'total_conflicts': self.total_conflicts,
         }
-        if not __.is_absent( self.rule_selection ):
+        if self.rule_selection is not None:
             result[ 'rule_selection' ] = self.rule_selection
         return result
 
@@ -364,7 +364,7 @@ class CheckCommand( __.immut.DataclassObject ):
     ''' Analyzes code and reports violations. '''
 
     paths: PathsArgument = ( '.',)
-    select: __.Absential[ RuleSelectorArgument ] = __.absent
+    select: RuleSelectorArgument = None
     jobs: __.typx.Annotated[
         __.typx.Union[ int, __.typx.Literal[ 'auto' ] ],
         __.tyro.conf.arg( prefix_name = False ),
@@ -390,8 +390,9 @@ class CheckCommand( __.immut.DataclassObject ):
             async with __.ctxl.AsyncExitStack( ) as exits:
                 await _render_and_print_result( result, display, exits )
             return 0
+        select = self.select if self.select is not None else __.absent
         enabled_rules = _merge_rule_selection(
-            self.select, config, _rules.create_registry_manager( ) )
+            select, config, _rules.create_registry_manager( ) )
         context_size = _merge_context_size( display.context, config )
         rule_parameters: __.immut.Dictionary[
             str, __.immut.Dictionary[ str, __.typx.Any ] ]
@@ -429,7 +430,7 @@ class FixCommand( __.immut.DataclassObject ):
     ''' Applies automated fixes with safety controls. '''
 
     paths: PathsArgument = ( '.',)
-    select: __.Absential[ RuleSelectorArgument ] = __.absent
+    select: RuleSelectorArgument = None
     simulate: __.typx.Annotated[
         bool,
         __.tyro.conf.arg( prefix_name = False ),
@@ -452,8 +453,9 @@ class FixCommand( __.immut.DataclassObject ):
         file_paths = _discover_python_files( self.paths )
         if not __.is_absent( config ):
             file_paths = _apply_path_filters( file_paths, config )
+        select = self.select if self.select is not None else __.absent
         file_results = _collect_and_apply_fixes(
-            file_paths, self.select, config,
+            file_paths, select, config,
             self.apply_dangerous, self.simulate )
         total_applied = sum(
             len( r.applied_fixes ) for r in file_results )
