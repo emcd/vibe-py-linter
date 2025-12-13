@@ -150,6 +150,61 @@ _ = _BracketSpacingTransformer.leave_Dict
 _ = _BracketSpacingTransformer.leave_Set
 _ = _BracketSpacingTransformer.leave_Call
 
+# VBL104 visitor and transformer methods
+from vibelinter.rules.implementations.vbl104 import VBL104, _KeywordSpacingTransformer
+
+_ = VBL104.visit_Arg
+_ = VBL104.visit_Param
+_ = _KeywordSpacingTransformer.leave_Arg
+_ = _KeywordSpacingTransformer.leave_Param
+
+# VBL105 visitor and transformer methods
+from vibelinter.rules.implementations.vbl105 import VBL105, _QuoteNormalizationTransformer
+
+_ = VBL105.visit_Call
+_ = VBL105.leave_Call
+_ = VBL105.visit_Raise
+_ = VBL105.leave_Raise
+_ = VBL105.visit_SimpleString
+_ = VBL105.visit_FormattedString
+_ = _QuoteNormalizationTransformer.leave_SimpleString
+_ = _QuoteNormalizationTransformer.leave_FormattedString
+
+# VBL106 visitor and transformer methods
+from vibelinter.rules.implementations.vbl106 import VBL106, _SingleLineBodyTransformer
+
+_ = VBL106.visit_If
+_ = VBL106.visit_For
+_ = VBL106.visit_While
+_ = VBL106.visit_With
+_ = _SingleLineBodyTransformer.leave_If
+_ = _SingleLineBodyTransformer.leave_For
+_ = _SingleLineBodyTransformer.leave_While
+_ = _SingleLineBodyTransformer.leave_With
+
+# VBL107 visitor and transformer methods
+from vibelinter.rules.implementations.vbl107 import VBL107, _TrailingCommaTransformer
+
+_ = VBL107.visit_List
+_ = VBL107.visit_Tuple
+_ = VBL107.visit_Set
+_ = VBL107.visit_Dict
+_ = _TrailingCommaTransformer.leave_List
+_ = _TrailingCommaTransformer.leave_Tuple
+_ = _TrailingCommaTransformer.leave_Set
+_ = _TrailingCommaTransformer.leave_Dict
+
+# VBL108 visitor and transformer methods
+from vibelinter.rules.implementations.vbl108 import VBL108, _DocstringTransformer
+
+_ = VBL108.visit_SimpleString
+_ = _DocstringTransformer.leave_SimpleString
+
+# VBL109 visitor methods
+from vibelinter.rules.implementations.vbl109 import VBL109
+
+_ = VBL109.visit_Module
+
 # FixConflict fields
 _ = FixConflict.skipped_fix
 _ = FixConflict.conflicting_fix

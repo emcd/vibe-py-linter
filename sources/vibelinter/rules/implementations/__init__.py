@@ -26,5 +26,12 @@ from . import __
 
 # Import rules to trigger self-registration
 from . import vbl101
+from . import vbl103
+from . import vbl104
+from . import vbl105
+from . import vbl106
+from . import vbl107
+from . import vbl108
+from . import vbl109
 from . import vbl201
 from . import vbl202

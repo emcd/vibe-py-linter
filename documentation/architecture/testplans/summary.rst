@@ -45,19 +45,30 @@ Module Number Assignments
   * ``test_110_context.py`` - Rule context management
   * ``test_120_base.py`` - Base rule framework
   * ``test_130_registry.py`` - Rule registry and discovery
+  * ``test_140_fixable.py`` - Fixable rule framework (planned)
 
 * **200-299**: Configuration and parsing
 
   * ``test_200_configuration.py`` - Configuration loading and validation (planned)
 
-* **300-399**: Analysis engine
+* **300-399**: Analysis and fix engine
 
   * ``test_300_engine.py`` - Linting engine core functionality (planned)
+  * ``test_350_filtering.py`` - Violation filtering
+  * ``test_360_fixer.py`` - Fix engine infrastructure (planned)
 
 * **400-499**: Rule implementations (subpackage)
 
-  * ``test_410_rules_vbl101.py`` - VBL101 blank line elimination tests (planned)
+  * ``test_410_rules_vbl101.py`` - VBL101 blank line elimination tests
   * ``test_420_rules_vbl201.py`` - VBL201 import hub enforcement tests
+  * ``test_430_rules_vbl202.py`` - VBL202 rule tests
+  * ``test_440_rules_vbl103.py`` - VBL103 bracket spacing tests (planned)
+  * ``test_441_rules_vbl104.py`` - VBL104 keyword spacing tests (planned)
+  * ``test_442_rules_vbl105.py`` - VBL105 quote normalization tests (planned)
+  * ``test_443_rules_vbl106.py`` - VBL106 single-line body tests (planned)
+  * ``test_444_rules_vbl107.py`` - VBL107 trailing comma tests (planned)
+  * ``test_445_rules_vbl108.py`` - VBL108 docstring formatting tests (planned)
+  * ``test_446_rules_vbl109.py`` - VBL109 line length tests (planned)
 
 * **500-599**: CLI interface
 
@@ -123,3 +134,7 @@ Updates Log
 * 2025-11-18: Adjusted test numbering to place rules (400-499) after configuration (200-299) and engine (300-399) to reflect architectural dependencies
 * 2025-11-20: Added comprehensive test plans for configuration reader (test_200_configuration.py) and engine (test_300_engine.py)
 * 2025-11-22: Added comprehensive test plan for VBL101 blank line elimination (test_410_rules_vbl101.py)
+* 2025-12-13: Added comprehensive test plans for fix infrastructure (fixer.rst, fixable.rst)
+* 2025-12-13: Placed fixable framework in 100s (test_140_fixable.py) as core rule infrastructure
+* 2025-12-13: Placed fix engine in 300s (test_360_fixer.py) alongside analysis engine
+* 2025-12-13: Style rules VBL103-VBL109 assigned 440-446 in rule implementations block
