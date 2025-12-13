@@ -28,6 +28,8 @@ from .rules import context as _context
 from .rules import registry as _registry
 from .rules import violations as _violations
 from .rules.base import BaseRule as _BaseRule
+from .rules.fixable import Fix as _Fix
+from .rules.fixable import FixableRule as _FixableRule
 
 
 def _create_empty_rule_parameters( ) -> __.immut.Dictionary[
@@ -79,6 +81,20 @@ class Report( __.immut.DataclassObject ):
     analysis_duration_ms: __.typx.Annotated[
         float,
         __.ddoc.Doc( 'Time spent in analysis phase excluding parsing.' ) ]
+
+
+class FixReport( __.immut.DataclassObject ):
+    ''' Results of fix collection for a file. '''
+
+    fixes: __.typx.Annotated[
+        tuple[ _Fix, ... ],
+        __.ddoc.Doc( 'All fixes collected from fixable rules.' ) ]
+    filename: __.typx.Annotated[
+        str,
+        __.ddoc.Doc( 'Path to analyzed source file.' ) ]
+    source_code: __.typx.Annotated[
+        str,
+        __.ddoc.Doc( 'Original source code of the file.' ) ]
 
 
 class Engine:
@@ -336,6 +352,70 @@ class Engine:
         reports: list[ Report ] = [ ]
         for file_path in file_paths:
             try: report = self.lint_file( file_path )
+            except Exception: continue  # noqa: S112
+            reports.append( report )
+        return tuple( reports )
+
+    def _gather_fixes_from_rules(
+        self,
+        rules: list[ _BaseRule ]
+    ) -> list[ _Fix ]:
+        ''' Collects and sorts fixes from all fixable rules. '''
+        all_fixes: list[ _Fix ] = [ ]
+        for rule in rules:
+            if isinstance( rule, _FixableRule ):
+                all_fixes.extend( rule.fixes )
+        all_fixes.sort(
+            key = lambda f: ( f.violation.line, f.violation.column ) )
+        return all_fixes
+
+    def collect_fixes(
+        self,
+        source_code: __.typx.Annotated[
+            str,
+            __.ddoc.Doc( 'Python source code to analyze.' ) ],
+        filename: __.typx.Annotated[
+            str,
+            __.ddoc.Doc( 'Logical filename for source code.' ) ] = '<string>',
+    ) -> __.typx.Annotated[
+        FixReport,
+        __.ddoc.Doc( 'Fix collection results.' ) ]:
+        ''' Analyzes source code and collects fixes from fixable rules. '''
+        wrapper, source_lines = self._create_metadata_wrapper(
+            source_code, filename )
+        rules = self._instantiate_rules( wrapper, source_lines, filename )
+        self._execute_rules( rules, wrapper )
+        all_fixes = self._gather_fixes_from_rules( rules )
+        return FixReport(
+            fixes = tuple( all_fixes ),
+            filename = filename,
+            source_code = source_code,
+        )
+
+    def collect_fixes_for_file(
+        self,
+        file_path: __.typx.Annotated[
+            __.pathlib.Path,
+            __.ddoc.Doc( 'Path to Python source file to analyze.' ) ]
+    ) -> __.typx.Annotated[
+        FixReport,
+        __.ddoc.Doc( 'Fix collection results.' ) ]:
+        ''' Analyzes a Python file and collects fixes from fixable rules. '''
+        source_code = file_path.read_text( encoding = 'utf-8' )
+        return self.collect_fixes( source_code, str( file_path ) )
+
+    def collect_fixes_for_files(
+        self,
+        file_paths: __.typx.Annotated[
+            __.cabc.Sequence[ __.pathlib.Path ],
+            __.ddoc.Doc( 'Paths to Python source files to analyze.' ) ]
+    ) -> __.typx.Annotated[
+        tuple[ FixReport, ... ],
+        __.ddoc.Doc( 'Fix collection results for all files.' ) ]:
+        ''' Analyzes multiple Python files and collects fixes. '''
+        reports: list[ FixReport ] = [ ]
+        for file_path in file_paths:
+            try: report = self.collect_fixes_for_file( file_path )
             except Exception: continue  # noqa: S112
             reports.append( report )
         return tuple( reports )

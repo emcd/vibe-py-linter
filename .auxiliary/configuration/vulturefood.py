@@ -95,6 +95,65 @@ _ = nomina.PositionalArguments
 _ = nomina.package_name
 _ = Context
 
+# Fix infrastructure
+from vibelinter.engine import FixReport
+from vibelinter.fixer import (
+    FixApplicationResult,
+    FixConflict,
+    FixEngine,
+    FixEngineResult,
+    SkippedFix,
+)
+from vibelinter.rules.fixable import (
+    Fix,
+    FixableRule,
+    FixSafety,
+    FixSequence,
+)
+from vibelinter.rules.implementations.vbl103 import VBL103
+
+_ = FixReport
+_ = FixApplicationResult
+_ = FixConflict
+_ = FixEngine
+_ = FixEngineResult
+_ = SkippedFix
+_ = Fix
+_ = FixableRule
+_ = FixSafety
+_ = FixSafety.PotentiallyUnsafe
+_ = FixSafety.Dangerous
+_ = FixSequence
+
+# Engine methods for fix collection
+_ = Engine.collect_fixes_for_files
+
+# FixableRule methods and attributes
+_ = FixableRule.supports_fix
+
+# VBL103 visitor and transformer methods
+_ = VBL103.visit_FormattedString
+_ = VBL103.leave_FormattedString
+_ = VBL103.visit_Call
+_ = VBL103.visit_Tuple
+_ = VBL103.visit_List
+_ = VBL103.visit_Dict
+_ = VBL103.visit_Set
+
+# VBL103 transformer leave methods (used by LibCST)
+from vibelinter.rules.implementations.vbl103 import _BracketSpacingTransformer
+
+_ = _BracketSpacingTransformer.leave_Arg
+_ = _BracketSpacingTransformer.leave_Tuple
+_ = _BracketSpacingTransformer.leave_List
+_ = _BracketSpacingTransformer.leave_Dict
+_ = _BracketSpacingTransformer.leave_Set
+_ = _BracketSpacingTransformer.leave_Call
+
+# FixConflict fields
+_ = FixConflict.skipped_fix
+_ = FixConflict.conflicting_fix
+
 # Note: cli.py:466 verbose parameter cannot be whitelisted via vulturefood
 # This is a pre-existing unused parameter, not introduced by rules framework
 # Vulture will exit with code 3 (1 warning) until this is addressed in CLI implementation

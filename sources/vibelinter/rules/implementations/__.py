@@ -25,8 +25,8 @@
 
 from ..__ import *
 from ..base import BaseRule
+from ..fixable import Fix, FixSafety, FixableRule
 from ..registry import *
-
 
 # Global mutable registry for self-registering rules
 RULE_DESCRIPTORS: accret.Dictionary[ str, RuleDescriptor ] = (

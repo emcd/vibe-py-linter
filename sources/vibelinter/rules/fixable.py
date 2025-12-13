@@ -1,0 +1,163 @@
+# vim: set filetype=python fileencoding=utf-8:
+# -*- coding: utf-8 -*-
+
+#============================================================================#
+#                                                                            #
+#  Licensed under the Apache License, Version 2.0 (the "License");           #
+#  you may not use this file except in compliance with the License.          #
+#  You may obtain a copy of the License at                                   #
+#                                                                            #
+#      http://www.apache.org/licenses/LICENSE-2.0                            #
+#                                                                            #
+#  Unless required by applicable law or agreed to in writing, software       #
+#  distributed under the License is distributed on an "AS IS" BASIS,         #
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  #
+#  See the License for the specific language governing permissions and       #
+#  limitations under the License.                                            #
+#                                                                            #
+#============================================================================#
+
+
+''' Fix infrastructure for automated code remediation.
+
+    Provides data structures and base classes for rules that support
+    automated fixes. Separates detection (CSTVisitor) from fixing
+    (CSTTransformer) to avoid metaclass conflicts.
+'''
+
+
+from . import __
+from . import violations as _violations
+from .base import BaseRule as _BaseRule
+
+
+class FixSafety( __.enum.Enum ):
+    ''' Classification of fix safety levels.
+
+        Determines whether fixes are applied automatically or require
+        explicit user consent via --apply-dangerous.
+    '''
+
+    Safe = 'safe'
+    ''' Fix is semantically equivalent and preserves all behavior. '''
+
+    PotentiallyUnsafe = 'potentially_unsafe'
+    ''' Fix may subtly change behavior in edge cases. '''
+
+    Dangerous = 'dangerous'
+    ''' Fix may significantly alter behavior or remove code. '''
+
+
+# Type alias for transformer factory functions
+TransformerFactory: __.typx.TypeAlias = __.cabc.Callable[
+    [ __.libcst.Module ],
+    __.libcst.Module
+]
+
+
+class Fix( __.immut.DataclassObject ):
+    ''' Represents a proposed fix for a violation.
+
+        Fixes are collected after violation detection and applied
+        by the FixEngine. Each fix includes a transformer factory
+        that produces the modified CST.
+    '''
+
+    violation: __.typx.Annotated[
+        _violations.Violation,
+        __.ddoc.Doc( 'The violation this fix addresses.' ) ]
+    description: __.typx.Annotated[
+        str,
+        __.ddoc.Doc( 'Human-readable description of the fix.' ) ]
+    safety: __.typx.Annotated[
+        FixSafety,
+        __.ddoc.Doc( 'Safety classification for the fix.' ) ]
+    transformer_factory: __.typx.Annotated[
+        TransformerFactory,
+        __.ddoc.Doc(
+            'Factory function that transforms the module CST. '
+            'Takes a Module and returns the modified Module.'
+        ) ]
+
+    def render_as_json( self ) -> dict[ str, __.typx.Any ]:
+        ''' Renders fix as JSON-compatible dictionary. '''
+        return {
+            'violation': self.violation.render_as_json( ),
+            'description': self.description,
+            'safety': self.safety.value,
+        }
+
+    def render_as_text( self ) -> str:
+        ''' Renders fix as text line. '''
+        return (
+            f"  {self.violation.line}:{self.violation.column} "
+            f"[{self.safety.value}] {self.description}"
+        )
+
+
+class FixableRule( _BaseRule ):
+    ''' Abstract base class for rules that support automated fixes.
+
+        Extends BaseRule with fix collection capability. Rules collect
+        violations during CST traversal and optionally generate fixes
+        for each violation in _analyze_collections.
+
+        Design: Detection uses CSTVisitor (inherited from BaseRule),
+        fixing uses CSTTransformer (via transformer_factory in Fix).
+        This separation avoids metaclass conflicts.
+    '''
+
+    def __init__(
+        self,
+        filename: __.typx.Annotated[
+            str,
+            __.ddoc.Doc( 'Path to source file being analyzed.' ) ],
+        wrapper: __.typx.Annotated[
+            __.libcst.metadata.MetadataWrapper,
+            __.ddoc.Doc(
+                'LibCST metadata wrapper providing position and scope.'
+            ) ],
+        source_lines: __.typx.Annotated[
+            tuple[ str, ... ],
+            __.ddoc.Doc( 'Source file lines for context extraction.' ) ],
+    ) -> None:
+        super( ).__init__( filename, wrapper, source_lines )
+        self._fixes: list[ Fix ] = [ ]
+
+    @property
+    def supports_fix( self ) -> bool:
+        ''' Returns True if this rule can generate fixes. '''
+        return True
+
+    @property
+    def fixes( self ) -> tuple[ Fix, ... ]:
+        ''' Returns fixes generated by rule analysis. '''
+        return tuple( self._fixes )
+
+    def _produce_fix(
+        self,
+        violation: __.typx.Annotated[
+            _violations.Violation,
+            __.ddoc.Doc( 'The violation to fix.' ) ],
+        description: __.typx.Annotated[
+            str,
+            __.ddoc.Doc( 'Description of the fix.' ) ],
+        transformer_factory: __.typx.Annotated[
+            TransformerFactory,
+            __.ddoc.Doc( 'Factory that produces the modified module.' ) ],
+        safety: __.typx.Annotated[
+            FixSafety,
+            __.ddoc.Doc( 'Safety level of the fix.' ) ] = FixSafety.Safe,
+    ) -> None:
+        ''' Creates and registers a fix for a violation. '''
+        fix = Fix(
+            violation = violation,
+            description = description,
+            safety = safety,
+            transformer_factory = transformer_factory,
+        )
+        self._fixes.append( fix )
+
+
+# Type aliases for fix framework contracts
+FixSequence: __.typx.TypeAlias = __.cabc.Sequence[ Fix ]

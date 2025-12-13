@@ -22,4 +22,5 @@
 
 
 from . import __
+from .fixable import Fix, FixableRule, FixSafety
 from .implementations.__ import create_registry_manager

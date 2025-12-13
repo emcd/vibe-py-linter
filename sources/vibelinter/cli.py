@@ -28,6 +28,7 @@ from appcore import cli as _appcore_cli
 from . import __
 from . import configuration as _configuration
 from . import engine as _engine
+from . import fixer as _fixer
 from . import rules as _rules
 # Ensure registry is available for type hints
 from .rules import registry as _registry
@@ -156,15 +157,35 @@ class FixResult( RenderableResult ):
     simulate: bool
     diff_format: str
     apply_dangerous: bool
+    file_results: tuple[ _fixer.FixApplicationResult, ... ]
+    total_applied: int
+    total_skipped: int
+    total_conflicts: int
     rule_selection: __.Absential[ str ] = __.absent
 
     def render_as_json( self ) -> dict[ str, __.typx.Any ]:
         ''' Renders result as JSON-compatible dictionary. '''
+        files_data: list[ dict[ str, __.typx.Any ] ] = [ ]
+        for file_result in self.file_results:
+            file_data: dict[ str, __.typx.Any ] = {
+                'filename': file_result.filename,
+                'applied_count': len( file_result.applied_fixes ),
+                'skipped_count': len( file_result.skipped_fixes ),
+                'conflict_count': len( file_result.conflicts ),
+                'has_changes': file_result.has_changes,
+            }
+            if file_result.has_changes and self.simulate:
+                file_data[ 'diff' ] = file_result.generate_unified_diff( )
+            files_data.append( file_data )
         result: dict[ str, __.typx.Any ] = {
             'paths': list( self.paths ),
             'simulate': self.simulate,
             'diff_format': self.diff_format,
             'apply_dangerous': self.apply_dangerous,
+            'files': files_data,
+            'total_applied': self.total_applied,
+            'total_skipped': self.total_skipped,
+            'total_conflicts': self.total_conflicts,
         }
         if not __.is_absent( self.rule_selection ):
             result[ 'rule_selection' ] = self.rule_selection
@@ -172,12 +193,38 @@ class FixResult( RenderableResult ):
 
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders result as text lines. '''
-        lines = [ f'Fixing paths: {self.paths}' ]
-        if not __.is_absent( self.rule_selection ):
-            lines.append( f'  Rule selection: {self.rule_selection}' )
-        lines.append( f'  Simulate: {self.simulate}' )
-        lines.append( f'  Diff format: {self.diff_format}' )
-        lines.append( f'  Apply dangerous: {self.apply_dangerous}' )
+        lines: list[ str ] = [ ]
+        for file_result in self.file_results:
+            if not file_result.has_changes:
+                continue
+            lines.append( f'\n{file_result.filename}:' )
+            if self.simulate:
+                diff = (
+                    file_result.generate_context_diff( )
+                    if self.diff_format == 'context'
+                    else file_result.generate_unified_diff( )
+                )
+                lines.append( diff )
+            else:
+                lines.extend(
+                    fix.render_as_text( )
+                    for fix in file_result.applied_fixes )
+            # Report skipped fixes
+            lines.extend(
+                "  [skipped] {line}:{col} {reason}".format(
+                    line = skipped.fix.violation.line,
+                    col = skipped.fix.violation.column,
+                    reason = skipped.reason )
+                for skipped in file_result.skipped_fixes )
+        if not lines:
+            lines.append( 'No fixes to apply.' )
+        else:
+            action = 'Would apply' if self.simulate else 'Applied'
+            lines.append(
+                f'\n{action} {self.total_applied} fixes '
+                f'({self.total_skipped} skipped, '
+                f'{self.total_conflicts} conflicts).'
+            )
         return tuple( lines )
 
 
@@ -401,16 +448,33 @@ class FixCommand( __.immut.DataclassObject ):
 
     async def __call__( self, display: DisplayOptions ) -> int:
         ''' Executes the fix command. '''
+        config = _configuration.discover_configuration( )
+        file_paths = _discover_python_files( self.paths )
+        if not __.is_absent( config ):
+            file_paths = _apply_path_filters( file_paths, config )
+        file_results = _collect_and_apply_fixes(
+            file_paths, self.select, config,
+            self.apply_dangerous, self.simulate )
+        total_applied = sum(
+            len( r.applied_fixes ) for r in file_results )
+        total_skipped = sum(
+            len( r.skipped_fixes ) for r in file_results )
+        total_conflicts = sum(
+            len( r.conflicts ) for r in file_results )
         result = FixResult(
             paths = self.paths,
             simulate = self.simulate,
             diff_format = self.diff_format.value,
             apply_dangerous = self.apply_dangerous,
+            file_results = file_results,
+            total_applied = total_applied,
+            total_skipped = total_skipped,
+            total_conflicts = total_conflicts,
             rule_selection = self.select,
         )
         async with __.ctxl.AsyncExitStack( ) as exits:
             await _render_and_print_result( result, display, exits )
-        return 0
+        return 1 if total_applied > 0 and not self.simulate else 0
 
 
 class ConfigureCommand( __.immut.DataclassObject ):
@@ -630,6 +694,49 @@ async def intercept_errors(
                     stream.write( '## Unexpected Error\n' )
                     stream.write( f'**Message**: {exc}\n' )
         raise SystemExit( 1 ) from exc
+
+
+def _collect_and_apply_fixes(
+    file_paths: tuple[ __.pathlib.Path, ... ],
+    select: __.Absential[ str ],
+    config: __.Absential[ __.typx.Any ],
+    apply_dangerous: bool,
+    simulate: bool,
+) -> tuple[ _fixer.FixApplicationResult, ... ]:
+    ''' Collects and applies fixes to files. '''
+    if not file_paths:
+        return ( )
+    enabled_rules = _merge_rule_selection(
+        select, config, _rules.create_registry_manager( ) )
+    rule_parameters: __.immut.Dictionary[
+        str, __.immut.Dictionary[ str, __.typx.Any ] ]
+    per_file_ignores: __.immut.Dictionary[ str, tuple[ str, ... ] ]
+    if __.is_absent( config ):
+        rule_parameters = __.immut.Dictionary( )
+        per_file_ignores = __.immut.Dictionary( )
+    else:
+        rule_parameters = config.rule_parameters
+        per_file_ignores = config.per_file_ignores
+    configuration = _engine.EngineConfiguration(
+        enabled_rules = enabled_rules,
+        context_size = 0,
+        include_context = False,
+        rule_parameters = rule_parameters,
+        per_file_ignores = per_file_ignores,
+    )
+    registry_manager = _rules.create_registry_manager( )
+    engine = _engine.Engine( registry_manager, configuration )
+    fix_engine = _fixer.FixEngine( apply_dangerous = apply_dangerous )
+    file_results: list[ _fixer.FixApplicationResult ] = [ ]
+    for file_path in file_paths:
+        try:
+            fix_report = engine.collect_fixes_for_file( file_path )
+            if not fix_report.fixes: continue
+            file_result = fix_engine.apply_fixes_to_file(
+                file_path, fix_report.fixes, simulate = simulate )
+            file_results.append( file_result )
+        except Exception: continue  # noqa: S112
+    return tuple( file_results )
 
 
 def _discover_python_files(
