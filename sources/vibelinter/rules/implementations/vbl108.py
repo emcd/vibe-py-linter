@@ -35,6 +35,10 @@ from . import __
 class _DocstringTransformer( __.libcst.CSTTransformer ):
     ''' Transforms CST to fix docstring formatting. '''
 
+    METADATA_DEPENDENCIES = (
+        __.libcst.metadata.PositionProvider,
+    )
+
     def __init__(
         self,
         target_line: int,

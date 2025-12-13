@@ -37,6 +37,10 @@ from . import __
 class _BracketSpacingTransformer( __.libcst.CSTTransformer ):
     ''' Transforms CST to add proper bracket spacing. '''
 
+    METADATA_DEPENDENCIES = (
+        __.libcst.metadata.PositionProvider,
+    )
+
     def __init__(
         self,
         target_line: int,

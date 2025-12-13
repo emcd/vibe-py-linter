@@ -696,7 +696,7 @@ def third():
     if len( report.violations ) > 1:
         for i in range( len( report.violations ) - 1 ):
             v1, v2 = report.violations[ i ], report.violations[ i + 1 ]
-            assert (v1.line, v1.column) <= (v2.line, v2.column)
+            assert ( v1.line, v1.column ) <= ( v2.line, v2.column )
 
 
 def test_330_lint_source_includes_violations_from_multiple_rules( mock_registry ):

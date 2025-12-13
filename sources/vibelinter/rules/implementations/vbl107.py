@@ -35,6 +35,10 @@ from . import __
 class _TrailingCommaTransformer( __.libcst.CSTTransformer ):
     ''' Transforms CST to add trailing commas to multi-line collections. '''
 
+    METADATA_DEPENDENCIES = (
+        __.libcst.metadata.PositionProvider,
+    )
+
     def __init__(
         self,
         target_line: int,

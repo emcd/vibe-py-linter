@@ -43,6 +43,10 @@ MAX_LINE_LENGTH = 79
 class _SingleLineBodyTransformer( __.libcst.CSTTransformer ):
     ''' Transforms CST to compact simple bodies to single line. '''
 
+    METADATA_DEPENDENCIES = (
+        __.libcst.metadata.PositionProvider,
+    )
+
     def __init__(
         self,
         target_line: int,

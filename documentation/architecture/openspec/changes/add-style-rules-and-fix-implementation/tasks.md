@@ -1,27 +1,27 @@
 ## 1. Fix Infrastructure
 
-- [ ] 1.1 Create `sources/vibelinter/rules/fixable.py` with `FixSafety`, `Fix`, and `FixableRule`
-- [ ] 1.2 Create `sources/vibelinter/fixer.py` with `FixEngine` and `FixResult`
-- [ ] 1.3 Add `collect_fixes()` method to `Engine` class in `engine.py`
-- [ ] 1.4 Update `sources/vibelinter/rules/__init__.py` to export fixable module
+- [x] 1.1 Create `sources/vibelinter/rules/fixable.py` with `FixSafety`, `Fix`, and `FixableRule`
+- [x] 1.2 Create `sources/vibelinter/fixer.py` with `FixEngine` and `FixResult`
+- [x] 1.3 Add `collect_fixes()` method to `Engine` class in `engine.py`
+- [x] 1.4 Update `sources/vibelinter/rules/__init__.py` to export fixable module
 
 ## 2. CLI Integration
 
-- [ ] 2.1 Implement `FixCommand.__call__()` in `cli.py`
-- [ ] 2.2 Add diff generation for `--simulate` mode
-- [ ] 2.3 Wire up safety filtering with `--apply-dangerous` flag
+- [x] 2.1 Implement `FixCommand.__call__()` in `cli.py`
+- [x] 2.2 Add diff generation for `--simulate` mode
+- [x] 2.3 Wire up safety filtering with `--apply-dangerous` flag
 
 ## 3. Style Rules
 
-- [ ] 3.1 Implement VBL103 (bracket spacing) with fix support
-- [ ] 3.2 Implement VBL104 (keyword argument spacing) with fix support
-- [ ] 3.3 Implement VBL105 (quote normalization) with fix support
-- [ ] 3.4 Implement VBL106 (single-line body compaction) with fix support
-- [ ] 3.5 Implement VBL107 (trailing comma enforcement) with fix support
-- [ ] 3.6 Implement VBL108 (docstring formatting) with fix support
+- [x] 3.1 Implement VBL103 (bracket spacing) with fix support
+- [x] 3.2 Implement VBL104 (keyword argument spacing) with fix support
+- [x] 3.3 Implement VBL105 (quote normalization) with fix support
+- [x] 3.4 Implement VBL106 (single-line body compaction) with fix support
+- [x] 3.5 Implement VBL107 (trailing comma enforcement) with fix support
+- [x] 3.6 Implement VBL108 (docstring formatting) with fix support
 - [ ] 3.7 Create `LineReformatter` class with left-gravity algorithm
 - [ ] 3.8 Implement VBL109 (line length and reformatting) with fix support
-- [ ] 3.9 Register all new rules in `implementations/__init__.py`
+- [x] 3.9 Register all new rules in `implementations/__init__.py`
 
 ## 4. Testing
 
@@ -32,5 +32,5 @@
 
 ## 5. Documentation
 
-- [ ] 5.1 Update rule descriptions in `describe` command output
+- [x] 5.1 Update rule descriptions in `describe` command output
 - [ ] 5.2 Add user documentation for style rules

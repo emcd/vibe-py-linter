@@ -36,6 +36,10 @@ from . import __
 class _KeywordSpacingTransformer( __.libcst.CSTTransformer ):
     ''' Transforms CST to add proper keyword argument spacing. '''
 
+    METADATA_DEPENDENCIES = (
+        __.libcst.metadata.PositionProvider,
+    )
+
     def __init__(
         self,
         target_line: int,

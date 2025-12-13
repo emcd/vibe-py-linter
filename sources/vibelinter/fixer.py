@@ -187,28 +187,11 @@ class FixEngine:
         module = __.libcst.parse_module( source_code )
         applied: list[ _Fix ] = [ ]
         conflicts: list[ FixConflict ] = [ ]
-        modified_lines: set[ int ] = set( )
         for fix in sorted_fixes:
-            violation = fix.violation
-            # Check for overlap with already-applied fixes
-            if violation.line in modified_lines:
-                # Find the conflicting fix
-                conflicting_fixes = [
-                    f for f in applied if f.violation.line == violation.line ]
-                conflicting = (
-                    conflicting_fixes[ 0 ] if conflicting_fixes
-                    else applied[ -1 ] if applied else fix )
-                conflicts.append( FixConflict(
-                    skipped_fix = fix,
-                    conflicting_fix = conflicting,
-                    reason = f"Line {violation.line} already modified.",
-                ) )
-                continue
             try:
                 module = fix.transformer_factory( module )
                 applied.append( fix )
-                modified_lines.add( violation.line )
-            except Exception:
+            except Exception:  # noqa: PERF203
                 # If transformation fails, skip this fix
                 conflicts.append( FixConflict(
                     skipped_fix = fix,
