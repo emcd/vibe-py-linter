@@ -4,6 +4,23 @@
 
 Add style checking and code reformatting capabilities to vibe-py-linter, integrating with the existing rule framework and CLI infrastructure.
 
+## Detailed Materials
+
+All specifications and designs are in the OpenSpec change:
+
+- **Change directory**: `documentation/architecture/openspec/changes/add-style-rules-and-fix-implementation/`
+- **Tasks (22 total)**: `tasks.md` - Implementation checklist across 5 phases
+- **Design**: `specs/remediation/design.md` - Detailed fix infrastructure including:
+  - `FixSafety`, `Fix`, `FixableRule` class designs
+  - `FixEngine` with conflict resolution
+  - `LineReformatter` with left-gravity algorithm
+  - Progressive breaking levels (1-4)
+  - Single-line body compaction with 70% threshold
+- **Rule specs**: `specs/rules-readability/spec.md` - VBL103-VBL109 scenarios
+- **CLI spec**: `specs/cli/spec.md` - Fix subcommand requirements
+
+Validate the change with: `openspec validate add-style-rules-and-fix-implementation`
+
 ## User Requirements
 
 - **Unified approach**: Style violations appear alongside other lint violations in `check` command
@@ -153,3 +170,14 @@ Style rules are fully documented in `.auxiliary/instructions/practices-python.rs
 
 **Function invocations:**
 - No trailing comma; closing paren on same line as final arg
+
+## Next Steps
+
+Start with Phase 1 tasks from `tasks.md`:
+
+1. **Task 1.1**: Create `sources/vibelinter/rules/fixable.py` with `FixSafety`, `Fix`, `FixableRule`
+2. **Task 1.2**: Create `sources/vibelinter/fixer.py` with `FixEngine`, `FixResult`
+3. **Task 1.3**: Add `collect_fixes()` method to `Engine` in `engine.py`
+4. **Task 1.4**: Update `sources/vibelinter/rules/__init__.py` exports
+
+Then proceed to Phase 2 (CLI) before implementing the style rules in Phase 3.
