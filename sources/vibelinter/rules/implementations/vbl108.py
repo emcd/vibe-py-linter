@@ -29,7 +29,12 @@
 '''
 
 
+import textwrap as _textwrap
 from . import __
+
+
+MIN_MULTILINE_LINES = 2
+SUMMARY_CONTINUATION_INDEX = 1
 
 
 class _DocstringTransformer( __.libcst.CSTTransformer ):
@@ -73,25 +78,58 @@ class _DocstringTransformer( __.libcst.CSTTransformer ):
         if pos is None or pos != ( self.target_line, self.target_column ):
             return updated_node
         value = updated_node.value
-        # Check for triple-quoted string
-        if value.startswith( '"""' ):
-            content = value[ 3:-3 ]
+        new_value: str | None = None
+        prefix = ''
+        content_start = 0
+        for i, char in enumerate( value ):
+            if char in ( '"', "'" ):
+                prefix = value[ :i ]
+                content_start = i
+                break
+        rest = value[ content_start: ]
+        if rest.startswith( '"""' ):
+            content = rest[ 3:-3 ]
             if self.fix_type == 'quotes':
-                new_value = f"'''{content}'''"
-                return updated_node.with_changes( value = new_value )
-            if self.fix_type == 'spacing' and '\n' not in content:
-                # Add spacing if missing (single-line docstring)
+                new_value = f"{prefix}'''{content}'''"
+            elif self.fix_type == 'spacing' and '\n' not in content:
                 content = content.strip( )
-                new_value = f"''' {content} '''"
-                return updated_node.with_changes( value = new_value )
-        elif value.startswith( "'''" ):
-            content = value[ 3:-3 ]
+                new_value = f"{prefix}''' {content} '''"
+            elif self.fix_type == 'multiline' and '\n' in content:
+                new_value = self._normalize_multiline(
+                    content, prefix, self.target_column )
+        elif rest.startswith( "'''" ):
+            content = rest[ 3:-3 ]
             if self.fix_type == 'spacing' and '\n' not in content:
-                # Fix spacing for single-line docstring
                 content = content.strip( )
-                new_value = f"''' {content} '''"
-                return updated_node.with_changes( value = new_value )
-        return updated_node
+                new_value = f"{prefix}''' {content} '''"
+            elif self.fix_type == 'multiline' and '\n' in content:
+                new_value = self._normalize_multiline(
+                    content, prefix, self.target_column )
+        if new_value is None:
+            return updated_node
+        return updated_node.with_changes( value = new_value )
+
+    def _normalize_multiline(
+        self,
+        content: str,
+        prefix: str,
+        target_column: int,
+    ) -> str:
+        ''' Normalizes multi-line docstring indentation and layout. '''
+        indent = ' ' * ( max( target_column - 1, 0 ) )
+        trimmed = content.strip( '\n' )
+        dedented = _textwrap.dedent( trimmed )
+        raw_lines = [ line.rstrip( ) for line in dedented.split( '\n' ) ]
+        if not raw_lines:
+            raw_lines = [ '' ]
+        summary = raw_lines[ 0 ].strip( )
+        remainder = raw_lines[ 1: ]
+        new_lines: list[ str ] = [ f"{indent}{prefix}''' {summary}" ]
+        if remainder:
+            new_lines.append( f"{indent}" )
+            new_lines.extend( f"{indent}{line}" for line in remainder )
+        new_lines.append( f"{indent}'''" )
+        return '\n'.join( new_lines )
 
 
 class VBL108( __.FixableRule ):
@@ -150,6 +188,28 @@ class VBL108( __.FixableRule ):
             pass
         return False
 
+    def _is_multiline_misformatted(
+        self,
+        value: str,
+        indent: str,
+    ) -> bool:
+        ''' Checks multi-line docstring formatting and indentation. '''
+        lines = value.split( '\n' )
+        if len( lines ) < MIN_MULTILINE_LINES:
+            return False
+        first = lines[ 0 ]
+        last = lines[ -1 ].rstrip( )
+        expects_body = len( lines ) > MIN_MULTILINE_LINES
+        misformatted = (
+            not first.startswith( f"{indent}'''" )
+            or not last.startswith( f"{indent}'''" )
+            or last != f"{indent}'''"
+            or not first.startswith( f"{indent}''' " )
+        )
+        if not misformatted and expects_body:
+            misformatted = lines[ SUMMARY_CONTINUATION_INDEX ].strip( ) != ''
+        return misformatted
+
     def visit_SimpleString( self, node: __.libcst.SimpleString ) -> bool:
         ''' Checks docstring formatting. '''
         value = node.value
@@ -196,9 +256,20 @@ class VBL108( __.FixableRule ):
                         node,
                         "Single-line docstrings need spaces: ''' Text. '''",
                         line,
-                        column,
-                        'spacing'
-                    ) )
+                column,
+                'spacing'
+            ) )
+        # Multi-line formatting
+        if '\n' in content:
+            indent = ' ' * ( max( column - 1, 0 ) )
+            if self._is_multiline_misformatted( value, indent ):
+                self._violations_to_fix.append( (
+                    node,
+                    "Multi-line docstring formatting/indentation is invalid.",
+                    line,
+                    column,
+                    'multiline'
+                ) )
         return True
 
     def _analyze_collections( self ) -> None:

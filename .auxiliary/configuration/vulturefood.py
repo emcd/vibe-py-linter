@@ -177,6 +177,7 @@ _ = VBL106.visit_If
 _ = VBL106.visit_For
 _ = VBL106.visit_While
 _ = VBL106.visit_With
+_ = VBL106.visit_Try
 _ = _SingleLineBodyTransformer.leave_If
 _ = _SingleLineBodyTransformer.leave_For
 _ = _SingleLineBodyTransformer.leave_While

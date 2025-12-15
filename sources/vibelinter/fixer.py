@@ -128,6 +128,20 @@ class FixEngineResult( __.immut.DataclassObject ):
         __.ddoc.Doc( 'Total number of conflicts encountered.' ) ]
 
 
+class FixResult( __.immut.DataclassObject ):
+    ''' Aggregated result from a fix command run. '''
+
+    paths: tuple[ str, ... ]
+    simulate: bool
+    diff_format: str
+    apply_dangerous: bool
+    file_results: tuple[ FixApplicationResult, ... ]
+    total_applied: int
+    total_skipped: int
+    total_conflicts: int
+    rule_selection: __.typx.Optional[ str ] = None
+
+
 class FixEngine:
     ''' Coordinates fix application with safety and conflict handling.
 
@@ -187,11 +201,21 @@ class FixEngine:
         module = __.libcst.parse_module( source_code )
         applied: list[ _Fix ] = [ ]
         conflicts: list[ FixConflict ] = [ ]
+        applied_positions: dict[ tuple[ int, int ], _Fix ] = { }
         for fix in sorted_fixes:
+            position = ( fix.violation.line, fix.violation.column )
+            if position in applied_positions:
+                conflicts.append( FixConflict(
+                    skipped_fix = fix,
+                    conflicting_fix = applied_positions[ position ],
+                    reason = "Overlapping fix location.",
+                ) )
+                continue
             try:
                 module = fix.transformer_factory( module )
                 applied.append( fix )
-            except Exception:  # noqa: PERF203
+                applied_positions[ position ] = fix
+            except Exception:
                 # If transformation fails, skip this fix
                 conflicts.append( FixConflict(
                     skipped_fix = fix,

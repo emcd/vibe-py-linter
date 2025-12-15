@@ -282,6 +282,15 @@ class VBL103( __.FixableRule ):
                 elif ws.value == '' and not has_content:
                     self._record_violation(
                         node, "Empty parentheses should be '( )'." )
+        for rp in rpar:
+            ws = rp.whitespace_before
+            if isinstance( ws, __.libcst.SimpleWhitespace ):
+                if ws.value == '' and has_content:
+                    self._record_violation(
+                        node, "Missing space before closing parenthesis." )
+                elif ws.value == '' and not has_content:
+                    self._record_violation(
+                        node, "Empty parentheses should be '( )'." )
 
     def _check_bracket_spacing(
         self,
@@ -301,6 +310,14 @@ class VBL103( __.FixableRule ):
             elif ws_after.value == '' and not has_content:
                 self._record_violation(
                     node, "Empty brackets should be '[ ]'." )
+        ws_before = rbracket.whitespace_before
+        if isinstance( ws_before, __.libcst.SimpleWhitespace ):
+            if ws_before.value == '' and has_content:
+                self._record_violation(
+                    node, "Missing space before closing bracket." )
+            elif ws_before.value == '' and not has_content:
+                self._record_violation(
+                    node, "Empty brackets should be '[ ]'." )
 
     def _check_brace_spacing(
         self,
@@ -318,6 +335,14 @@ class VBL103( __.FixableRule ):
                 self._record_violation(
                     node, "Missing space after opening brace." )
             elif ws_after.value == '' and not has_content:
+                self._record_violation(
+                    node, "Empty braces should be '{ }'." )
+        ws_before = rbrace.whitespace_before
+        if isinstance( ws_before, __.libcst.SimpleWhitespace ):
+            if ws_before.value == '' and has_content:
+                self._record_violation(
+                    node, "Missing space before closing brace." )
+            elif ws_before.value == '' and not has_content:
                 self._record_violation(
                     node, "Empty braces should be '{ }'." )
 

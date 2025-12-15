@@ -282,6 +282,11 @@ class VBL106( __.FixableRule ):
         self._check_single_line_potential( node, node.body, 'with' )
         return True
 
+    def visit_Try( self, node: __.libcst.Try ) -> bool:
+        ''' Checks try block for single-line potential. '''
+        self._check_single_line_potential( node, node.body, 'try' )
+        return True
+
     def _analyze_collections( self ) -> None:
         ''' Generates violations and fixes from collected data. '''
         for node, message, line, column in self._violations_to_fix:

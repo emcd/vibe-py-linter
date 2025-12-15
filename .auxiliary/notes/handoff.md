@@ -57,16 +57,16 @@ See `documentation/architecture/testplans/vbl101-blank-line-elimination.rst` for
 
 ### Style Rules Implementation (VBL103-VBL109)
 
-All style rules specified in the OpenSpec change have been implemented:
+Style rules have been drafted; see "Implementation Gaps" for remaining work:
 
 | Rule | Name | Description | Fix Support |
 |------|------|-------------|-------------|
 | VBL103 | bracket-spacing | Spaces inside `()`, `[]`, `{}` | Yes |
 | VBL104 | keyword-argument-spacing | Spaces around `=` in kwargs | Yes |
 | VBL105 | quote-normalization | Single for data, double for f-strings/messages | Yes |
-| VBL106 | single-line-body | Compact single-statement control flow | Yes |
+| VBL106 | single-line-body | Compact single-statement control flow | Yes (includes try bodies) |
 | VBL107 | trailing-comma | Trailing commas in multi-line collections | Yes |
-| VBL108 | docstring-formatting | Triple single-quotes, proper spacing | Yes |
+| VBL108 | docstring-formatting | Triple single-quotes, proper spacing | Yes (single- and multi-line) |
 | VBL109 | line-length | Detect lines exceeding 79 chars | Detection only |
 
 ### Files Created/Modified
@@ -116,6 +116,10 @@ is deferred:
 - Content → next line, closing → own line, one-per-line, recurse into nested
 - Trailing comma logic (collections yes, function calls no)
 - Single-line body compaction threshold (70% of max line length)
+
+### Implementation Gaps Discovered
+
+- `FixEngine.apply_fixes` now tracks basic overlap conflicts (same line/column) but still needs richer span-aware detection and reporting for adjacent/structural overlaps.
 
 ### Unit Tests for Style Rules
 
