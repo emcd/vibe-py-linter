@@ -363,7 +363,7 @@ class ServeResult( RenderableResult ):
 class CheckCommand( __.immut.DataclassObject ):
     ''' Analyzes code and reports violations. '''
 
-    paths: PathsArgument = ( '.',)
+    paths: PathsArgument = ( '.', )
     select: RuleSelectorArgument = None
     jobs: __.typx.Annotated[
         __.typx.Union[ int, __.typx.Literal[ 'auto' ] ],
@@ -429,7 +429,7 @@ class CheckCommand( __.immut.DataclassObject ):
 class FixCommand( __.immut.DataclassObject ):
     ''' Applies automated fixes with safety controls. '''
 
-    paths: PathsArgument = ( '.',)
+    paths: PathsArgument = ( '.', )
     select: RuleSelectorArgument = None
     simulate: __.typx.Annotated[
         bool,

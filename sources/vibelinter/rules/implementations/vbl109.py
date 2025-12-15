@@ -56,7 +56,7 @@ class VBL109( __.BaseRule ):
         source_lines: tuple[ str, ... ],
     ) -> None:
         super( ).__init__( filename, wrapper, source_lines )
-        self._long_lines: list[ tuple[ int, int ] ] = [ ]  # (line_num, length)
+        self._long_lines: list[ tuple[ int, int ] ] = [ ]
 
     def visit_Module( self, node: __.libcst.Module ) -> bool:
         ''' Checks all source lines for length violations. '''

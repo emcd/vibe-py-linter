@@ -65,27 +65,35 @@ class _BracketSpacingTransformer( __.libcst.CSTTransformer ):
 
     def _ensure_space_after_open(
         self,
-        whitespace: __.libcst.BaseParenthesizableWhitespace
+        whitespace: __.libcst.BaseParenthesizableWhitespace,
+        has_content: bool
     ) -> __.libcst.BaseParenthesizableWhitespace:
-        ''' Ensures at least one space after opening delimiter. '''
-        if (
-            isinstance( whitespace, __.libcst.SimpleWhitespace )
-            and whitespace.value == ''
-        ):
-            return __.libcst.SimpleWhitespace( ' ' )
-        return whitespace
+        ''' Ensures proper space after opening delimiter. '''
+        if has_content:
+            if not (
+                isinstance( whitespace, __.libcst.SimpleWhitespace )
+                and whitespace.value == ' '
+            ):
+                return __.libcst.SimpleWhitespace( ' ' )
+            return whitespace
+        # Empty container: single space total, placed after the opener
+        return __.libcst.SimpleWhitespace( ' ' )
 
     def _ensure_space_before_close(
         self,
-        whitespace: __.libcst.BaseParenthesizableWhitespace
+        whitespace: __.libcst.BaseParenthesizableWhitespace,
+        has_content: bool
     ) -> __.libcst.BaseParenthesizableWhitespace:
-        ''' Ensures at least one space before closing delimiter. '''
-        if (
-            isinstance( whitespace, __.libcst.SimpleWhitespace )
-            and whitespace.value == ''
-        ):
-            return __.libcst.SimpleWhitespace( ' ' )
-        return whitespace
+        ''' Ensures proper space before closing delimiter. '''
+        if has_content:
+            if not (
+                isinstance( whitespace, __.libcst.SimpleWhitespace )
+                and whitespace.value == ' '
+            ):
+                return __.libcst.SimpleWhitespace( ' ' )
+            return whitespace
+        # Empty container: no additional space before the closer
+        return __.libcst.SimpleWhitespace( '' )
 
     def leave_Arg(
         self,
@@ -109,11 +117,13 @@ class _BracketSpacingTransformer( __.libcst.CSTTransformer ):
         if pos is None or pos != ( self.target_line, self.target_column ):
             return updated_node
         if updated_node.lpar and updated_node.rpar:
+            has_elements = len( updated_node.elements ) > 0
             new_lpar: list[ __.libcst.LeftParen ] = [ ]
             for lp in updated_node.lpar:
                 new_lp = lp.with_changes(
                     whitespace_after = self._ensure_space_after_open(
-                        lp.whitespace_after
+                        lp.whitespace_after,
+                        has_content = has_elements
                     )
                 )
                 new_lpar.append( new_lp )
@@ -121,7 +131,8 @@ class _BracketSpacingTransformer( __.libcst.CSTTransformer ):
             for rp in updated_node.rpar:
                 new_rp = rp.with_changes(
                     whitespace_before = self._ensure_space_before_close(
-                        rp.whitespace_before
+                        rp.whitespace_before,
+                        has_content = has_elements
                     )
                 )
                 new_rpar.append( new_rp )
@@ -138,14 +149,17 @@ class _BracketSpacingTransformer( __.libcst.CSTTransformer ):
         pos = self._get_position( original_node )
         if pos is None or pos != ( self.target_line, self.target_column ):
             return updated_node
+        has_elements = len( updated_node.elements ) > 0
         new_lbracket = updated_node.lbracket.with_changes(
             whitespace_after = self._ensure_space_after_open(
-                updated_node.lbracket.whitespace_after
+                updated_node.lbracket.whitespace_after,
+                has_content = has_elements
             )
         )
         new_rbracket = updated_node.rbracket.with_changes(
             whitespace_before = self._ensure_space_before_close(
-                updated_node.rbracket.whitespace_before
+                updated_node.rbracket.whitespace_before,
+                has_content = has_elements
             )
         )
         return updated_node.with_changes(
@@ -160,14 +174,17 @@ class _BracketSpacingTransformer( __.libcst.CSTTransformer ):
         pos = self._get_position( original_node )
         if pos is None or pos != ( self.target_line, self.target_column ):
             return updated_node
+        has_elements = len( updated_node.elements ) > 0
         new_lbrace = updated_node.lbrace.with_changes(
             whitespace_after = self._ensure_space_after_open(
-                updated_node.lbrace.whitespace_after
+                updated_node.lbrace.whitespace_after,
+                has_content = has_elements
             )
         )
         new_rbrace = updated_node.rbrace.with_changes(
             whitespace_before = self._ensure_space_before_close(
-                updated_node.rbrace.whitespace_before
+                updated_node.rbrace.whitespace_before,
+                has_content = has_elements
             )
         )
         return updated_node.with_changes(
@@ -182,14 +199,17 @@ class _BracketSpacingTransformer( __.libcst.CSTTransformer ):
         pos = self._get_position( original_node )
         if pos is None or pos != ( self.target_line, self.target_column ):
             return updated_node
+        has_elements = len( updated_node.elements ) > 0
         new_lbrace = updated_node.lbrace.with_changes(
             whitespace_after = self._ensure_space_after_open(
-                updated_node.lbrace.whitespace_after
+                updated_node.lbrace.whitespace_after,
+                has_content = has_elements
             )
         )
         new_rbrace = updated_node.rbrace.with_changes(
             whitespace_before = self._ensure_space_before_close(
-                updated_node.rbrace.whitespace_before
+                updated_node.rbrace.whitespace_before,
+                has_content = has_elements
             )
         )
         return updated_node.with_changes(
@@ -204,12 +224,14 @@ class _BracketSpacingTransformer( __.libcst.CSTTransformer ):
         pos = self._get_position( original_node )
         if pos is None or pos != ( self.target_line, self.target_column ):
             return updated_node
+        has_args = len( updated_node.args ) > 0
         # Handle whitespace after opening paren
         new_lpar: list[ __.libcst.LeftParen ] = [ ]
         for lp in updated_node.lpar:
             new_lp = lp.with_changes(
                 whitespace_after = self._ensure_space_after_open(
-                    lp.whitespace_after
+                    lp.whitespace_after,
+                    has_content = has_args
                 )
             )
             new_lpar.append( new_lp )
@@ -218,7 +240,8 @@ class _BracketSpacingTransformer( __.libcst.CSTTransformer ):
         for rp in updated_node.rpar:
             new_rp = rp.with_changes(
                 whitespace_before = self._ensure_space_before_close(
-                    rp.whitespace_before
+                    rp.whitespace_before,
+                    has_content = has_args
                 )
             )
             new_rpar.append( new_rp )
@@ -273,24 +296,32 @@ class VBL103( __.FixableRule ):
         ''' Checks spacing for parentheses. '''
         if self._in_fstring > 0:
             return
+        if not has_content:
+            for lp in lpar:
+                ws = lp.whitespace_after
+                if (
+                    isinstance( ws, __.libcst.SimpleWhitespace )
+                    and ws.value == ''
+                ):
+                    self._record_violation(
+                        node, "Empty parentheses should be '( )'." )
+            return
         for lp in lpar:
             ws = lp.whitespace_after
-            if isinstance( ws, __.libcst.SimpleWhitespace ):
-                if ws.value == '' and has_content:
-                    self._record_violation(
-                        node, "Missing space after opening parenthesis." )
-                elif ws.value == '' and not has_content:
-                    self._record_violation(
-                        node, "Empty parentheses should be '( )'." )
+            if (
+                isinstance( ws, __.libcst.SimpleWhitespace )
+                and ws.value == ''
+            ):
+                self._record_violation(
+                    node, "Missing space after opening parenthesis." )
         for rp in rpar:
             ws = rp.whitespace_before
-            if isinstance( ws, __.libcst.SimpleWhitespace ):
-                if ws.value == '' and has_content:
-                    self._record_violation(
-                        node, "Missing space before closing parenthesis." )
-                elif ws.value == '' and not has_content:
-                    self._record_violation(
-                        node, "Empty parentheses should be '( )'." )
+            if (
+                isinstance( ws, __.libcst.SimpleWhitespace )
+                and ws.value == ''
+            ):
+                self._record_violation(
+                    node, "Missing space before closing parenthesis." )
 
     def _check_bracket_spacing(
         self,
@@ -303,21 +334,27 @@ class VBL103( __.FixableRule ):
         if self._in_fstring > 0:
             return
         ws_after = lbracket.whitespace_after
-        if isinstance( ws_after, __.libcst.SimpleWhitespace ):
-            if ws_after.value == '' and has_content:
-                self._record_violation(
-                    node, "Missing space after opening bracket." )
-            elif ws_after.value == '' and not has_content:
-                self._record_violation(
-                    node, "Empty brackets should be '[ ]'." )
         ws_before = rbracket.whitespace_before
-        if isinstance( ws_before, __.libcst.SimpleWhitespace ):
-            if ws_before.value == '' and has_content:
-                self._record_violation(
-                    node, "Missing space before closing bracket." )
-            elif ws_before.value == '' and not has_content:
+        if not has_content:
+            if (
+                isinstance( ws_after, __.libcst.SimpleWhitespace )
+                and ws_after.value == ''
+            ):
                 self._record_violation(
                     node, "Empty brackets should be '[ ]'." )
+            return
+        if (
+            isinstance( ws_after, __.libcst.SimpleWhitespace )
+            and ws_after.value == ''
+        ):
+            self._record_violation(
+                node, "Missing space after opening bracket." )
+        if (
+            isinstance( ws_before, __.libcst.SimpleWhitespace )
+            and ws_before.value == ''
+        ):
+            self._record_violation(
+                node, "Missing space before closing bracket." )
 
     def _check_brace_spacing(
         self,
@@ -330,21 +367,27 @@ class VBL103( __.FixableRule ):
         if self._in_fstring > 0:
             return
         ws_after = lbrace.whitespace_after
-        if isinstance( ws_after, __.libcst.SimpleWhitespace ):
-            if ws_after.value == '' and has_content:
-                self._record_violation(
-                    node, "Missing space after opening brace." )
-            elif ws_after.value == '' and not has_content:
-                self._record_violation(
-                    node, "Empty braces should be '{ }'." )
         ws_before = rbrace.whitespace_before
-        if isinstance( ws_before, __.libcst.SimpleWhitespace ):
-            if ws_before.value == '' and has_content:
-                self._record_violation(
-                    node, "Missing space before closing brace." )
-            elif ws_before.value == '' and not has_content:
+        if not has_content:
+            if (
+                isinstance( ws_after, __.libcst.SimpleWhitespace )
+                and ws_after.value == ''
+            ):
                 self._record_violation(
                     node, "Empty braces should be '{ }'." )
+            return
+        if (
+            isinstance( ws_after, __.libcst.SimpleWhitespace )
+            and ws_after.value == ''
+        ):
+            self._record_violation(
+                node, "Missing space after opening brace." )
+        if (
+            isinstance( ws_before, __.libcst.SimpleWhitespace )
+            and ws_before.value == ''
+        ):
+            self._record_violation(
+                node, "Missing space before closing brace." )
 
     def _record_violation(
         self, node: __.libcst.CSTNode, message: str
