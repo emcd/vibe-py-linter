@@ -243,7 +243,7 @@ class VBL106( __.FixableRule ):
                     if isinstance(
                         small_stmt,
                         ( __.libcst.Assert, __.libcst.Global,
-                          __.libcst.Nonlocal )
+                          __.libcst.Nonlocal, )
                     ):
                         return
         line, column = self._position_from_node( node )
@@ -251,7 +251,7 @@ class VBL106( __.FixableRule ):
             node,
             f"Simple {node_type} body can be written on single line.",
             line,
-            column
+            column,
         ) )
 
     def visit_If( self, node: __.libcst.If ) -> bool:

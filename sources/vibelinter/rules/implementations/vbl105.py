@@ -235,7 +235,7 @@ class VBL105( __.FixableRule ):
             f"Use {target_quote} for {context}.",
             line,
             column,
-            target_quote
+            target_quote,
         ) )
         return True
 
@@ -258,7 +258,7 @@ class VBL105( __.FixableRule ):
             'Use " for f-strings.',
             line,
             column,
-            '"'
+            '"',
         ) )
         return True
 

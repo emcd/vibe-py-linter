@@ -167,12 +167,12 @@ class VBL108( __.FixableRule ):
                     __.libcst.metadata.ParentNodeProvider, parent )
                 # Check if grandparent is a block
                 gp_types = ( __.libcst.FunctionDef, __.libcst.ClassDef,
-                             __.libcst.Module, __.libcst.IndentedBlock )
+                             __.libcst.Module, __.libcst.IndentedBlock, )
                 if isinstance( grandparent, gp_types ):
                     # Check if this is the first statement
                     if isinstance(
                         grandparent, ( __.libcst.IndentedBlock,
-                                       __.libcst.Module )
+                                       __.libcst.Module, )
                     ):
                         body = grandparent.body
                         if body and body[ 0 ] is parent: return True
@@ -227,7 +227,7 @@ class VBL108( __.FixableRule ):
                 "Docstrings should use triple single-quotes.",
                 line,
                 column,
-                'quotes'
+                'quotes',
             ) )
         # Check spacing for single-line docstrings
         if value.startswith( "'''" ):
@@ -242,7 +242,7 @@ class VBL108( __.FixableRule ):
                         "Single-line docstrings need spaces: ''' Text. '''",
                         line,
                         column,
-                        'spacing'
+                        'spacing',
                     ) )
         elif value.startswith( '"""' ):
             content = value[ 3:-3 ]
@@ -257,7 +257,7 @@ class VBL108( __.FixableRule ):
                         "Single-line docstrings need spaces: ''' Text. '''",
                         line,
                 column,
-                'spacing'
+                'spacing',
             ) )
         # Multi-line formatting
         if '\n' in content:
@@ -268,7 +268,7 @@ class VBL108( __.FixableRule ):
                     "Multi-line docstring formatting/indentation is invalid.",
                     line,
                     column,
-                    'multiline'
+                    'multiline',
                 ) )
         return True
 

@@ -159,7 +159,7 @@ class VBL104( __.FixableRule ):
                 node,
                 f"Missing spaces around '=' in {context}.",
                 line,
-                column
+                column,
             ) )
 
     def visit_Arg( self, node: __.libcst.Arg ) -> bool:

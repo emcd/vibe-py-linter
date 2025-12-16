@@ -216,7 +216,7 @@ class VBL107( __.FixableRule ):
             node,
             f"Multi-line {collection_type} missing trailing comma.",
             line,
-            column
+            column,
         ) )
 
     def visit_List( self, node: __.libcst.List ) -> bool:
