@@ -36,7 +36,7 @@ class ConfigurationInvalidity( _exceptions.Omnierror, ValueError ):
     def __init__( self, location: PathLike, reason: str ) -> None:
         self.location = str( location )
         self.reason = reason
-        super( ).__init__( f'Invalid configuration at {location}: {reason}' )
+        super( ).__init__( f"Invalid configuration at {location}: {reason}" )
 
 
 class ConfigurationAbsence( _exceptions.Omnierror, FileNotFoundError ):
@@ -49,7 +49,7 @@ class ConfigurationAbsence( _exceptions.Omnierror, FileNotFoundError ):
         self.location = (
             None if __.is_absent( location ) else str( location ) )
         super( ).__init__(
-            "No pyproject.toml found in current or parent directories"
+            'No pyproject.toml found in current or parent directories'
             if __.is_absent( location )
             else f"Configuration file not found: {location}" )
 
@@ -109,11 +109,11 @@ def load_configuration( location: PathLike ) -> Configuration:
     try: data = _toml_loads( content )
     except Exception as exception:
         raise ConfigurationInvalidity(
-            location, f'Invalid TOML syntax: {exception}' ) from exception
+            location, f"Invalid TOML syntax: {exception}" ) from exception
     try: tool_config = data.get( 'tool', { } ).get( 'vibelinter', { } )
     except AttributeError as exception:
         raise ConfigurationInvalidity(
-            location, 'Invalid TOML structure' ) from exception
+            location, "Invalid TOML structure" ) from exception
     return _parse_configuration( tool_config, location )
 
 
@@ -197,13 +197,13 @@ def _parse_rule_parameters(
         if not isinstance( rule_code, str ):
             typename: str = type( rule_code ).__name__
             raise ConfigurationInvalidity(
-                location, f'Rule code must be string, got {typename}' )
+                location, f"Rule code must be string, got {typename}" )
         if not isinstance( params, dict ):
             typename = type( params ).__name__
             raise ConfigurationInvalidity(
                 location,
                 f'Rule "{rule_code}" parameters must be a table, '
-                f'got {typename}' )
+                f"got {typename}" )
         param_dict = __.typx.cast( dict[ str, __.typx.Any ], params )
         result[ rule_code ] = __.immut.Dictionary( param_dict )
     return __.immut.Dictionary( result )
@@ -227,7 +227,7 @@ def _parse_per_file_ignores(
             typename: str = type( pattern ).__name__
             raise ConfigurationInvalidity(
                 location,
-                f'Per-file-ignores pattern must be string, got {typename}' )
+                f"Per-file-ignores pattern must be string, got {typename}" )
         if isinstance( rules, str ):
             result[ pattern ] = ( rules, )
             continue
@@ -236,7 +236,7 @@ def _parse_per_file_ignores(
             raise ConfigurationInvalidity(
                 location,
                 f'Per-file-ignores rules for "{pattern}" must be list, '
-                f'got {typename}' )
+                f"got {typename}" )
         rules_list = __.typx.cast( list[ __.typx.Any ], rules )
         rule_list: list[ str ] = [ ]
         for i, rule in enumerate( rules_list ):
@@ -245,7 +245,7 @@ def _parse_per_file_ignores(
                 raise ConfigurationInvalidity(
                     location,
                     f'Rule in "{pattern}"[{i}] must be string, '
-                    f'got {typename}' )
+                    f"got {typename}" )
             rule_list.append( rule )
         result[ pattern ] = tuple( rule_list )
     return __.immut.Dictionary( result )
@@ -267,7 +267,7 @@ def _parse_string_sequence(
         raise ConfigurationInvalidity(
             location,
             f'"{key}" must be a string or list of strings, '
-            f'got {typename}' )
+            f"got {typename}" )
     result: list[ str ] = [ ]
     value_list = __.typx.cast( list[ __.typx.Any ], value )
     for i, item in enumerate( value_list ):

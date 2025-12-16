@@ -262,7 +262,7 @@ class VBL107( __.FixableRule ):
 
             self._produce_fix(
                 violation = violation,
-                description = "Add trailing comma.",
+                description = 'Add trailing comma.',
                 transformer_factory = make_transformer(
                     target_line, target_column ),
                 safety = __.FixSafety.Safe,

@@ -224,7 +224,7 @@ class VBL108( __.FixableRule ):
         if value.startswith( '"""' ):
             self._violations_to_fix.append( (
                 node,
-                "Docstrings should use triple single-quotes.",
+                'Docstrings should use triple single-quotes.',
                 line,
                 column,
                 'quotes',
@@ -265,7 +265,7 @@ class VBL108( __.FixableRule ):
             if self._is_multiline_misformatted( value, indent ):
                 self._violations_to_fix.append( (
                     node,
-                    "Multi-line docstring formatting/indentation is invalid.",
+                    'Multi-line docstring formatting/indentation is invalid.',
                     line,
                     column,
                     'multiline',
@@ -293,9 +293,9 @@ class VBL108( __.FixableRule ):
                 return transform
 
             desc = (
-                "Change to triple single-quotes."
+                'Change to triple single-quotes.'
                 if fix_type == 'quotes' else
-                "Add proper docstring spacing."
+                'Add proper docstring spacing.'
             )
             self._produce_fix(
                 violation = violation,
@@ -310,7 +310,7 @@ class VBL108( __.FixableRule ):
 __.RULE_DESCRIPTORS[ 'VBL108' ] = __.RuleDescriptor(
     vbl_code = 'VBL108',
     descriptive_name = 'docstring-formatting',
-    description = "Enforces triple single-quote docstrings with spacing.",
+    description = 'Enforces triple single-quote docstrings with spacing.',
     category = 'readability',
     subcategory = 'documentation',
     rule_class = VBL108,

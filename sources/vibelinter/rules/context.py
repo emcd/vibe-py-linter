@@ -86,7 +86,7 @@ class ContextExtractor:
             prefix = (
                 '→ ' if highlight_line and line_number == violation_line
                 else '  ' )
-            formatted_lines.append( f'{line_number:4d}{prefix}{line}' )
+            formatted_lines.append( f"{line_number:4d}{prefix}{line}" )
         return tuple( formatted_lines )
 
 

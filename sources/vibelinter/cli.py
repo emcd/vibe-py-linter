@@ -137,7 +137,7 @@ class CheckResult( RenderableResult ):
         for report_obj in self.reports:
             typed_report = __.typx.cast( _engine.Report, report_obj )
             if typed_report.violations:
-                lines.append( f'\n{typed_report.filename}:' )
+                lines.append( f"\n{typed_report.filename}:" )
                 lines.extend(
                     v.render_as_text( )
                     for v in typed_report.violations )
@@ -145,8 +145,8 @@ class CheckResult( RenderableResult ):
             lines.append( 'No violations found.' )
         else:
             lines.append(
-                f'\nFound {self.total_violations} violations '
-                f'in {self.total_files} files.' )
+                f"\nFound {self.total_violations} violations "
+                f"in {self.total_files} files." )
         return tuple( lines )
 
 
@@ -197,7 +197,7 @@ class FixResult( RenderableResult ):
         for file_result in self.file_results:
             if not file_result.has_changes:
                 continue
-            lines.append( f'\n{file_result.filename}:' )
+            lines.append( f"\n{file_result.filename}:" )
             if self.simulate:
                 diff = (
                     file_result.generate_context_diff( )
@@ -211,7 +211,7 @@ class FixResult( RenderableResult ):
                     for fix in file_result.applied_fixes )
             # Report skipped fixes
             lines.extend(
-                "  [skipped] {line}:{col} {reason}".format(
+                '  [skipped] {line}:{col} {reason}'.format(
                     line = skipped.fix.violation.line,
                     col = skipped.fix.violation.column,
                     reason = skipped.reason )
@@ -221,9 +221,9 @@ class FixResult( RenderableResult ):
         else:
             action = 'Would apply' if self.simulate else 'Applied'
             lines.append(
-                f'\n{action} {self.total_applied} fixes '
-                f'({self.total_skipped} skipped, '
-                f'{self.total_conflicts} conflicts).'
+                f"\n{action} {self.total_applied} fixes "
+                f"({self.total_skipped} skipped, "
+                f"{self.total_conflicts} conflicts)."
             )
         return tuple( lines )
 
@@ -247,9 +247,9 @@ class ConfigureResult( RenderableResult ):
         ''' Renders result as text lines. '''
         return (
             'Configure command',
-            f'  Validate: {self.validate}',
-            f'  Interactive: {self.interactive}',
-            f'  Display effective: {self.display_effective}',
+            f"  Validate: {self.validate}",
+            f"  Interactive: {self.interactive}",
+            f"  Display effective: {self.display_effective}",
         )
 
 
@@ -281,11 +281,11 @@ class DescribeRulesResult( RenderableResult ):
         for rule in sorted( self.rules, key = lambda r: r.descriptive_name ):
             if self.details:
                 lines.append(
-                    f'  {rule.descriptive_name} ({rule.vbl_code}) - '
-                    f'{rule.category}/{rule.subcategory}' )
+                    f"  {rule.descriptive_name} ({rule.vbl_code}) - "
+                    f"{rule.category}/{rule.subcategory}" )
             else:
                 lines.append(
-                    f'  {rule.descriptive_name} ({rule.vbl_code})' )
+                    f"  {rule.descriptive_name} ({rule.vbl_code})" )
         return tuple( lines )
 
 
@@ -311,11 +311,11 @@ class DescribeRuleResult( RenderableResult ):
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders result as text lines. '''
         lines = [
-            f'Rule: {self.rule.descriptive_name} ({self.rule.vbl_code})',
+            f"Rule: {self.rule.descriptive_name} ({self.rule.vbl_code})",
             '',
-            f'Description: {self.rule.description}',
+            f"Description: {self.rule.description}",
             '',
-            f'Category: {self.rule.category}/{self.rule.subcategory}',
+            f"Category: {self.rule.category}/{self.rule.subcategory}",
         ]
         if self.details:
             lines.extend( [
@@ -325,14 +325,14 @@ class DescribeRuleResult( RenderableResult ):
             ] )
         lines.extend( [
             '',
-            f'Violation Message: {self.rule.violation_message}',
+            f"Violation Message: {self.rule.violation_message}",
             '',
             'Examples:',
         ] )
         # Split examples by lines and indent them
         if self.rule.examples:
             lines.extend(
-                f'  {example_line}'
+                f"  {example_line}"
                 for example_line in self.rule.examples.split( '\n' )
             )
         else:
@@ -355,7 +355,7 @@ class ServeResult( RenderableResult ):
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders result as text lines. '''
         return (
-            f'Protocol server: {self.protocol}',
+            f"Protocol server: {self.protocol}",
             '  (Not yet implemented)',
         )
 
@@ -694,7 +694,7 @@ async def intercept_errors(
                     stream.write( '\n' )
                 case DisplayFormats.Text:
                     stream.write( '## Unexpected Error\n' )
-                    stream.write( f'**Message**: {exc}\n' )
+                    stream.write( f"**Message**: {exc}\n" )
         raise SystemExit( 1 ) from exc
 
 

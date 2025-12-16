@@ -313,7 +313,7 @@ class VBL103( __.FixableRule ):
                 and ws.value == ''
             ):
                 self._record_violation(
-                    node, "Missing space after opening parenthesis." )
+                    node, 'Missing space after opening parenthesis.' )
         for rp in rpar:
             ws = rp.whitespace_before
             if (
@@ -321,7 +321,7 @@ class VBL103( __.FixableRule ):
                 and ws.value == ''
             ):
                 self._record_violation(
-                    node, "Missing space before closing parenthesis." )
+                    node, 'Missing space before closing parenthesis.' )
 
     def _check_bracket_spacing(
         self,
@@ -348,13 +348,13 @@ class VBL103( __.FixableRule ):
             and ws_after.value == ''
         ):
             self._record_violation(
-                node, "Missing space after opening bracket." )
+                node, 'Missing space after opening bracket.' )
         if (
             isinstance( ws_before, __.libcst.SimpleWhitespace )
             and ws_before.value == ''
         ):
             self._record_violation(
-                node, "Missing space before closing bracket." )
+                node, 'Missing space before closing bracket.' )
 
     def _check_brace_spacing(
         self,
@@ -381,13 +381,13 @@ class VBL103( __.FixableRule ):
             and ws_after.value == ''
         ):
             self._record_violation(
-                node, "Missing space after opening brace." )
+                node, 'Missing space after opening brace.' )
         if (
             isinstance( ws_before, __.libcst.SimpleWhitespace )
             and ws_before.value == ''
         ):
             self._record_violation(
-                node, "Missing space before closing brace." )
+                node, 'Missing space before closing brace.' )
 
     def _record_violation(
         self, node: __.libcst.CSTNode, message: str
@@ -453,7 +453,7 @@ class VBL103( __.FixableRule ):
 
             self._produce_fix(
                 violation = violation,
-                description = "Add proper bracket spacing.",
+                description = 'Add proper bracket spacing.',
                 transformer_factory = make_transformer(
                     target_line, target_column ),
                 safety = __.FixSafety.Safe,

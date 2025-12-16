@@ -208,7 +208,7 @@ class FixEngine:
                 conflicts.append( FixConflict(
                     skipped_fix = fix,
                     conflicting_fix = applied_positions[ position ],
-                    reason = "Overlapping fix location.",
+                    reason = 'Overlapping fix location.',
                 ) )
                 continue
             try:
@@ -220,7 +220,7 @@ class FixEngine:
                 conflicts.append( FixConflict(
                     skipped_fix = fix,
                     conflicting_fix = fix,
-                    reason = "Transformation failed.",
+                    reason = 'Transformation failed.',
                 ) )
         modified_source = module.code
         return FixApplicationResult(
@@ -244,7 +244,7 @@ class FixEngine:
                 eligible.append( fix )
             else:
                 reason = (
-                    "Fix is {safety}; use --apply-dangerous to enable."
+                    'Fix is {safety}; use --apply-dangerous to enable.'
                     .format( safety = fix.safety.value ) )
                 skipped.append( SkippedFix( fix = fix, reason = reason ) )
         return eligible, skipped

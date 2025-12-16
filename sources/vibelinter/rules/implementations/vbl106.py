@@ -308,7 +308,7 @@ class VBL106( __.FixableRule ):
 
             self._produce_fix(
                 violation = violation,
-                description = "Compact to single-line form.",
+                description = 'Compact to single-line form.',
                 transformer_factory = make_transformer(
                     target_line, target_column ),
                 safety = __.FixSafety.Safe,

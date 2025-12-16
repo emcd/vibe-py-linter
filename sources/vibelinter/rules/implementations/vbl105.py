@@ -103,8 +103,16 @@ class _QuoteNormalizationTransformer( __.libcst.CSTTransformer ):
         pos = self._get_position( original_node )
         if pos is None or pos != ( self.target_line, self.target_column ):
             return updated_node
-        # Change quote style to double quotes
-        return updated_node.with_changes( quote = '"' )
+        # Change quote style by replacing trailing quote characters
+        start_quote_char = updated_node.start[ -1 ]
+        quote_count = len( updated_node.start ) - len(
+            updated_node.start.rstrip( start_quote_char ) )
+        prefix = updated_node.start[ : -quote_count ]
+        new_quote = self.target_quote * quote_count
+        return updated_node.with_changes(
+            start = f"{prefix}{new_quote}",
+            end = new_quote,
+        )
 
 
 class VBL105( __.FixableRule ):
@@ -166,6 +174,25 @@ class VBL105( __.FixableRule ):
             if char in ( '"', "'" ):
                 return char
         return '"'
+
+    def _formatted_string_contains_double_quote(
+        self, node: __.libcst.FormattedString
+    ) -> bool:
+        ''' Checks whether f-string text contains a double quote. '''
+        try:
+            source_text = self.wrapper.module.code_for_node( node )
+        except Exception:
+            source_text = None
+        if (
+            source_text is not None
+            and self._string_contains_quote( source_text, '"' )
+        ):
+            return True
+        return any(
+            isinstance( part, __.libcst.FormattedStringText )
+            and '"' in part.value
+            for part in node.parts
+        )
 
     def visit_Call( self, node: __.libcst.Call ) -> bool:
         ''' Tracks entry into message function calls. '''
@@ -247,11 +274,8 @@ class VBL105( __.FixableRule ):
         # F-strings should always use double quotes
         if current_quote == '"':
             return True
-        # Skip if f-string content contains double quote
-        for part in node.parts:
-            is_text = isinstance( part, __.libcst.FormattedStringText )
-            if is_text and '"' in part.value:
-                return True
+        if self._formatted_string_contains_double_quote( node ):
+            return True
         line, column = self._position_from_node( node )
         self._violations_to_fix.append( (
             node,
@@ -298,7 +322,7 @@ __.RULE_DESCRIPTORS[ 'VBL105' ] = __.RuleDescriptor(
     vbl_code = 'VBL105',
     descriptive_name = 'quote-normalization',
     description = (
-        "Enforces single quotes for data, double for f-strings and messages."
+        'Enforces single quotes for data, double for f-strings and messages.'
     ),
     category = 'readability',
     subcategory = 'formatting',

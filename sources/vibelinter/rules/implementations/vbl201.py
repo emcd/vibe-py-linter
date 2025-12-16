@@ -124,7 +124,7 @@ class VBL201( __.BaseRule ):
             if file_path.match( pattern ):
                 return True
             # Try matching with wildcard prefix for path-based patterns
-            if file_path.match( f'*/{pattern}' ):
+            if file_path.match( f"*/{pattern}" ):
                 return True
         return False
 
@@ -183,7 +183,7 @@ class VBL201( __.BaseRule ):
             )
         else:
             message = (
-                "Direct import detected. Use import hub or private alias." )
+                'Direct import detected. Use import hub or private alias.' )
         self._produce_violation( node, message, severity = 'warning' )
 
     def _report_from_import_violation(
@@ -192,7 +192,7 @@ class VBL201( __.BaseRule ):
         ''' Reports violation for from import statement. '''
         # Extract module name
         if node.module is None:
-            module_name = "relative import"
+            module_name = 'relative import'
         elif isinstance( node.module, __.libcst.Attribute ):
             module_name = self._extract_dotted_name( node.module )
         else:

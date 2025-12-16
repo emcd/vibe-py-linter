@@ -60,8 +60,8 @@ class Violation( __.immut.DataclassObject ):
     def render_as_text( self ) -> str:
         ''' Renders violation as text line. '''
         return (
-            f'  {self.line}:{self.column} '
-            f'{self.rule_id} {self.message}' )
+            f"  {self.line}:{self.column} "
+            f"{self.rule_id} {self.message}" )
 
 
 class ViolationContext( __.immut.DataclassObject ):

@@ -41,8 +41,8 @@ class Omnierror( Omniexception, Exception ):
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders exception as text lines. '''
         return (
-            f'## {self.__class__.__name__}',
-            f'**Message**: {self}',
+            f"## {self.__class__.__name__}",
+            f"**Message**: {self}",
         )
 
 
@@ -52,7 +52,7 @@ class RuleExecuteFailure( Omnierror ):
 
     def __init__( self, context: str ) -> None:
         super( ).__init__(
-            f'Rule execution failed for {context!r}' )
+            f"Rule execution failed for {context!r}" )
         self.context = context
 
     def render_as_json( self ) -> dict[ str, __.typx.Any ]:
@@ -66,9 +66,9 @@ class RuleExecuteFailure( Omnierror ):
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders exception with context information. '''
         return (
-            f'## {self.__class__.__name__}',
-            f'**Message**: {self}',
-            f'**Context**: {self.context}',
+            f"## {self.__class__.__name__}",
+            f"**Message**: {self}",
+            f"**Context**: {self.context}",
         )
 
 
@@ -77,7 +77,7 @@ class MetadataProvideFailure( Omnierror ):
 
     def __init__( self, filename: str ) -> None:
         super( ).__init__(
-            f'Failed to initialize LibCST metadata for {filename!r}' )
+            f"Failed to initialize LibCST metadata for {filename!r}" )
         self.filename = filename
 
     def render_as_json( self ) -> dict[ str, __.typx.Any ]:
@@ -91,9 +91,9 @@ class MetadataProvideFailure( Omnierror ):
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders exception with filename information. '''
         return (
-            f'## {self.__class__.__name__}',
-            f'**Message**: {self}',
-            f'**Filename**: {self.filename}',
+            f"## {self.__class__.__name__}",
+            f"**Message**: {self}",
+            f"**Filename**: {self.filename}",
         )
 
 
@@ -103,7 +103,7 @@ class RuleRegistryInvalidity( Omnierror ):
 
     def __init__( self, identifier: str ) -> None:
         super( ).__init__(
-            f'Unknown or invalid rule identifier: {identifier!r}' )
+            f"Unknown or invalid rule identifier: {identifier!r}" )
         self.identifier = identifier
 
     def render_as_json( self ) -> dict[ str, __.typx.Any ]:
@@ -117,9 +117,9 @@ class RuleRegistryInvalidity( Omnierror ):
     def render_as_text( self ) -> tuple[ str, ... ]:
         ''' Renders exception with identifier information. '''
         return (
-            f'## {self.__class__.__name__}',
-            f'**Message**: {self}',
-            f'**Identifier**: {self.identifier}',
+            f"## {self.__class__.__name__}",
+            f"**Message**: {self}",
+            f"**Identifier**: {self.identifier}",
         )
 
 

@@ -188,7 +188,7 @@ class VBL101( __.BaseRule ):
             filename = self.filename,
             line = line_num,
             column = 1,
-            message = "Blank line in function body.",
+            message = 'Blank line in function body.',
             severity = 'warning' )
         self._violations.append( violation )
 

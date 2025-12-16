@@ -91,7 +91,7 @@ class VBL109( __.BaseRule ):
 __.RULE_DESCRIPTORS[ 'VBL109' ] = __.RuleDescriptor(
     vbl_code = 'VBL109',
     descriptive_name = 'line-length',
-    description = f'Enforces maximum line length ({MAX_LINE_LENGTH} chars).',
+    description = f"Enforces maximum line length ({MAX_LINE_LENGTH} chars).",
     category = 'readability',
     subcategory = 'formatting',
     rule_class = VBL109,

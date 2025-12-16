@@ -117,7 +117,7 @@ class VBL202( __.BaseRule ):
             if file_path.match( pattern ):
                 return True
             # Try matching with wildcard prefix for path-based patterns
-            if file_path.match( f'*/{pattern}' ):
+            if file_path.match( f"*/{pattern}" ):
                 return True
         return False
 
@@ -158,7 +158,7 @@ class VBL202( __.BaseRule ):
         message = (
             "Two-level relative import ('from .. import') is only allowed "
             f"in re-export hub modules ({patterns_str}). "
-            "Move this import to a re-export hub or reduce import depth."
+            'Move this import to a re-export hub or reduce import depth.'
         )
         self._produce_violation( node, message, severity = 'warning' )
 
@@ -170,7 +170,7 @@ class VBL202( __.BaseRule ):
         message = (
             "Single-level relative import ('from . import') is not allowed "
             f"in re-export hub modules ({patterns_str}). This creates "
-            "backward imports since siblings expect to import the hub "
+            'backward imports since siblings expect to import the hub '
             "(e.g., 'from . import __'). Import from parent package "
             "instead using 'from .. import'."
         )
