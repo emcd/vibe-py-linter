@@ -116,6 +116,7 @@ is deferred:
 ### Implementation Gaps Discovered
 
 - `FixEngine.apply_fixes` now tracks basic overlap conflicts (same line/column) but still needs richer span-aware detection and reporting for adjacent/structural overlaps.
+- Action: extend FixEngine conflict detection to be span-aware (overlapping and adjacent spans), with clear reporting, before enabling dangerous fixes by default.
 
 ### Unit Tests for Style Rules
 
