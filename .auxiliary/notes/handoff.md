@@ -95,16 +95,12 @@ Style rules have been drafted; see "Implementation Gaps" for remaining work:
 
 ### Codebase Style Conformance
 
-The vibelinter check has been temporarily disabled in `pyproject.toml` (linters array)
-because the new VBL104-VBL109 rules find 200+ pre-existing violations in the codebase.
-
-**Next steps:**
-1. Apply `vibelinter fix` to auto-fix violations where possible
-2. Manually fix any remaining violations
-3. Re-enable vibelinter check in pyproject.toml
-
-**Note:** This is a "chicken and egg" situation - the rules need to be committed
-before the codebase can be updated to conform to them.
+The vibelinter check is still not part of the standard linters run. We have
+applied the fixers for VBL103, VBL105, VBL106, and VBL107 across `sources/`
+and resolved all reported violations for those rules; VBL108 currently reports
+none. VBL109 remains detection-only. Before re-enabling vibelinter in
+`pyproject.toml`, consider a final repo-wide pass (including tests/docs) to
+catch any stragglers outside `sources/`.
 
 ### LineReformatter with Left-Gravity Algorithm
 
