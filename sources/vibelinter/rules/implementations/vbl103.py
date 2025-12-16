@@ -73,8 +73,7 @@ class _BracketSpacingTransformer( __.libcst.CSTTransformer ):
             if not (
                 isinstance( whitespace, __.libcst.SimpleWhitespace )
                 and whitespace.value == ' '
-            ):
-                return __.libcst.SimpleWhitespace( ' ' )
+            ): return __.libcst.SimpleWhitespace( ' ' )
             return whitespace
         # Empty container: single space total, placed after the opener
         return __.libcst.SimpleWhitespace( ' ' )
@@ -89,8 +88,7 @@ class _BracketSpacingTransformer( __.libcst.CSTTransformer ):
             if not (
                 isinstance( whitespace, __.libcst.SimpleWhitespace )
                 and whitespace.value == ' '
-            ):
-                return __.libcst.SimpleWhitespace( ' ' )
+            ): return __.libcst.SimpleWhitespace( ' ' )
             return whitespace
         # Empty container: no additional space before the closer
         return __.libcst.SimpleWhitespace( '' )
@@ -294,8 +292,7 @@ class VBL103( __.FixableRule ):
         has_content: bool
     ) -> None:
         ''' Checks spacing for parentheses. '''
-        if self._in_fstring > 0:
-            return
+        if self._in_fstring > 0: return
         if not has_content:
             for lp in lpar:
                 ws = lp.whitespace_after
@@ -331,8 +328,7 @@ class VBL103( __.FixableRule ):
         has_content: bool
     ) -> None:
         ''' Checks spacing for square brackets. '''
-        if self._in_fstring > 0:
-            return
+        if self._in_fstring > 0: return
         ws_after = lbracket.whitespace_after
         ws_before = rbracket.whitespace_before
         if not has_content:
@@ -364,8 +360,7 @@ class VBL103( __.FixableRule ):
         has_content: bool
     ) -> None:
         ''' Checks spacing for curly braces. '''
-        if self._in_fstring > 0:
-            return
+        if self._in_fstring > 0: return
         ws_after = lbrace.whitespace_after
         ws_before = rbrace.whitespace_before
         if not has_content:

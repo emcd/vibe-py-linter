@@ -171,8 +171,7 @@ class VBL105( __.FixableRule ):
     def _get_current_quote( self, value: str ) -> str:
         ''' Extracts the current quote character from string value. '''
         for char in value:
-            if char in ( '"', "'" ):
-                return char
+            if char in ( '"', "'" ): return char
         return '"'
 
     def _formatted_string_contains_double_quote(
@@ -186,8 +185,7 @@ class VBL105( __.FixableRule ):
         if (
             source_text is not None
             and self._string_contains_quote( source_text, '"' )
-        ):
-            return True
+        ): return True
         return any(
             isinstance( part, __.libcst.FormattedStringText )
             and '"' in part.value
@@ -248,14 +246,12 @@ class VBL105( __.FixableRule ):
             target_quote = "'"
             context = 'data string'
         # Skip if already using correct quote
-        if current_quote == target_quote:
-            return True
+        if current_quote == target_quote: return True
         # Skip if string contains target quote (would require escaping)
         if self._string_contains_quote( value, target_quote ):
             return True
         # Skip byte strings and raw strings in certain cases
-        if value.startswith( ( 'b', 'B' ) ):
-            return True
+        if value.startswith( ( 'b', 'B' ) ): return True
         line, column = self._position_from_node( node )
         self._violations_to_fix.append( (
             node,
@@ -272,8 +268,7 @@ class VBL105( __.FixableRule ):
         ''' Checks f-string quote style. '''
         current_quote = node.quote
         # F-strings should always use double quotes
-        if current_quote == '"':
-            return True
+        if current_quote == '"': return True
         if self._formatted_string_contains_double_quote( node ):
             return True
         line, column = self._position_from_node( node )

@@ -80,11 +80,9 @@ class VBL201( __.BaseRule ):
 
     def visit_Import( self, node: __.libcst.Import ) -> bool:
         ''' Collects module-level simple import statements (import foo). '''
-        if self._is_hub_module:
-            return True
+        if self._is_hub_module: return True
         # Allow imports inside function bodies (local imports)
-        if self._function_depth > 0:
-            return True
+        if self._function_depth > 0: return True
         # Check if all imported names are private
         if all( self._is_alias_private( alias ) for alias in node.names ):
             return True
@@ -93,15 +91,11 @@ class VBL201( __.BaseRule ):
 
     def visit_ImportFrom( self, node: __.libcst.ImportFrom ) -> bool:
         ''' Collects module-level from imports (from foo import bar). '''
-        if self._is_hub_module:
-            return True
+        if self._is_hub_module: return True
         # Allow imports inside function bodies (local imports)
-        if self._function_depth > 0:
-            return True
-        if self._is_future_import( node ):
-            return True
-        if self._has_private_names( node ):
-            return True
+        if self._function_depth > 0: return True
+        if self._is_future_import( node ): return True
+        if self._has_private_names( node ): return True
         self._from_imports.append( node )
         return True
 
@@ -121,11 +115,9 @@ class VBL201( __.BaseRule ):
         file_path = __.pathlib.Path( self.filename )
         for pattern in self._hub_patterns:
             # Try matching against the file path
-            if file_path.match( pattern ):
-                return True
+            if file_path.match( pattern ): return True
             # Try matching with wildcard prefix for path-based patterns
-            if file_path.match( f"*/{pattern}" ):
-                return True
+            if file_path.match( f"*/{pattern}" ): return True
         return False
 
     def _is_future_import( self, node: __.libcst.ImportFrom ) -> bool:
@@ -133,8 +125,7 @@ class VBL201( __.BaseRule ):
         module = node.module
         if isinstance( module, __.libcst.Attribute ):
             return False
-        if module is None:
-            return False
+        if module is None: return False
         return module.value == '__future__'
 
     def _has_private_names( self, node: __.libcst.ImportFrom ) -> bool:

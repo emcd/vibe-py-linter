@@ -105,8 +105,7 @@ class _DocstringTransformer( __.libcst.CSTTransformer ):
             elif self.fix_type == 'multiline' and '\n' in content:
                 new_value = self._normalize_multiline(
                     content, prefix, self.target_column )
-        if new_value is None:
-            return updated_node
+        if new_value is None: return updated_node
         return updated_node.with_changes( value = new_value )
 
     def _normalize_multiline(
@@ -120,8 +119,7 @@ class _DocstringTransformer( __.libcst.CSTTransformer ):
         trimmed = content.strip( '\n' )
         dedented = _textwrap.dedent( trimmed )
         raw_lines = [ line.rstrip( ) for line in dedented.split( '\n' ) ]
-        if not raw_lines:
-            raw_lines = [ '' ]
+        if not raw_lines: raw_lines = [ '' ]
         summary = raw_lines[ 0 ].strip( )
         remainder = raw_lines[ 1: ]
         new_lines: list[ str ] = [ f"{indent}{prefix}''' {summary}" ]
@@ -195,8 +193,7 @@ class VBL108( __.FixableRule ):
     ) -> bool:
         ''' Checks multi-line docstring formatting and indentation. '''
         lines = value.split( '\n' )
-        if len( lines ) < MIN_MULTILINE_LINES:
-            return False
+        if len( lines ) < MIN_MULTILINE_LINES: return False
         first = lines[ 0 ]
         last = lines[ -1 ].rstrip( )
         expects_body = len( lines ) > MIN_MULTILINE_LINES
@@ -217,8 +214,7 @@ class VBL108( __.FixableRule ):
         if not ( value.startswith( '"""' ) or value.startswith( "'''" ) ):
             return True
         # Check if this is in a docstring position
-        if not self._is_docstring_position( node ):
-            return True
+        if not self._is_docstring_position( node ): return True
         line, column = self._position_from_node( node )
         # Check quote style
         if value.startswith( '"""' ):

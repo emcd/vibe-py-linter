@@ -195,8 +195,7 @@ class FixResult( RenderableResult ):
         ''' Renders result as text lines. '''
         lines: list[ str ] = [ ]
         for file_result in self.file_results:
-            if not file_result.has_changes:
-                continue
+            if not file_result.has_changes: continue
             lines.append( f"\n{file_result.filename}:" )
             if self.simulate:
                 diff = (
@@ -663,8 +662,7 @@ async def intercept_errors(
         formatting as errors.
     '''
     from . import exceptions as _exceptions
-    try:
-        yield
+    try: yield
     except _exceptions.Omnierror as exc:
         async with __.ctxl.AsyncExitStack( ) as exits:
             stream = await display.provide_stream( exits )
@@ -706,8 +704,7 @@ def _collect_and_apply_fixes(
     simulate: bool,
 ) -> tuple[ _fixer.FixApplicationResult, ... ]:
     ''' Collects and applies fixes to files. '''
-    if not file_paths:
-        return ( )
+    if not file_paths: return ( )
     enabled_rules = _merge_rule_selection(
         select, config, _rules.create_registry_manager( ) )
     rule_parameters: __.immut.Dictionary[
@@ -748,8 +745,7 @@ def _discover_python_files(
     python_files: list[ __.pathlib.Path ] = [ ]
     for path_str in paths:
         path = __.pathlib.Path( path_str )
-        if not path.exists( ):
-            continue
+        if not path.exists( ): continue
         if path.is_file( ) and path.suffix == '.py':
             python_files.append( path )
         elif path.is_dir( ):
@@ -786,8 +782,7 @@ def _matches_any_pattern(
     path_str = str( file_path )
     for pattern in patterns:
         if __.wcglob.globmatch(
-            path_str, pattern, flags = __.wcglob.GLOBSTAR ):
-            return True
+            path_str, pattern, flags = __.wcglob.GLOBSTAR ): return True
     return False
 
 
@@ -796,13 +791,10 @@ def _merge_context_size(
     config: __.Absential[ __.typx.Any ],
 ) -> int:
     ''' Merges context size from CLI and configuration. '''
-    if cli_context > 0:
-        return cli_context
-    if __.is_absent( config ):
-        return 0
+    if cli_context > 0: return cli_context
+    if __.is_absent( config ): return 0
     typed_config = __.typx.cast( _configuration.Configuration, config )
-    if __.is_absent( typed_config.context ):
-        return 0
+    if __.is_absent( typed_config.context ): return 0
     return typed_config.context
 
 
@@ -814,8 +806,7 @@ def _resolve_rule_set(
     codes: set[ str ] = set( )
     for raw_identifier in identifiers:
         identifier = raw_identifier.strip( )
-        if not identifier:
-            continue
+        if not identifier: continue
         code = registry_manager.resolve_rule_identifier( identifier )
         codes.add( code )
     return codes
@@ -832,8 +823,7 @@ def _merge_rule_selection(
     if not __.is_absent( cli_selection ):
         return frozenset( _resolve_rule_set(
             cli_selection.split( ',' ), registry_manager ) )
-    if __.is_absent( config ):
-        return all_rules
+    if __.is_absent( config ): return all_rules
     typed_config = __.typx.cast( _configuration.Configuration, config )
     if not __.is_absent( typed_config.select ):
         selected = _resolve_rule_set(

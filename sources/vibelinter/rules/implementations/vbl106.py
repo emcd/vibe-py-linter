@@ -185,8 +185,7 @@ class VBL106( __.FixableRule ):
         if isinstance( body, __.libcst.SimpleStatementSuite ):
             return False  # Already single-line
         if isinstance( body, __.libcst.IndentedBlock ):
-            if len( body.body ) != 1:
-                return False
+            if len( body.body ) != 1: return False
             stmt = body.body[ 0 ]
             return isinstance( stmt, __.libcst.SimpleStatementLine )
         return False
@@ -199,8 +198,7 @@ class VBL106( __.FixableRule ):
         ''' Estimates length if converted to single line. '''
         if not isinstance( body, __.libcst.IndentedBlock ):
             return 999
-        if len( body.body ) != 1:
-            return 999
+        if len( body.body ) != 1: return 999
         stmt = body.body[ 0 ]
         if not isinstance( stmt, __.libcst.SimpleStatementLine ):
             return 999
@@ -216,8 +214,7 @@ class VBL106( __.FixableRule ):
         if 1 <= line <= len( self.source_lines ):
             header = self.source_lines[ line - 1 ].strip( )
             # Remove trailing colon if present
-            if header.endswith( ':' ):
-                header = header[ :-1 ]
+            if header.endswith( ':' ): header = header[ :-1 ]
             return header
         return node_type
 
@@ -228,12 +225,10 @@ class VBL106( __.FixableRule ):
         node_type: str
     ) -> None:
         ''' Checks if body could be compacted to single line. '''
-        if not self._is_simple_body( body ):
-            return
+        if not self._is_simple_body( body ): return
         header = self._get_header_code( node, node_type )
         estimated_length = self._estimate_single_line_length( header, body )
-        if estimated_length > self._threshold:
-            return
+        if estimated_length > self._threshold: return
         # Check that body doesn't contain nested control flow
         if isinstance( body, __.libcst.IndentedBlock ):
             stmt = body.body[ 0 ]
@@ -244,8 +239,7 @@ class VBL106( __.FixableRule ):
                         small_stmt,
                         ( __.libcst.Assert, __.libcst.Global,
                           __.libcst.Nonlocal, )
-                    ):
-                        return
+                    ): return
         line, column = self._position_from_node( node )
         self._violations_to_fix.append( (
             node,
@@ -258,22 +252,19 @@ class VBL106( __.FixableRule ):
         ''' Checks if statement for single-line potential. '''
         # Only check main if, not elif (handled separately)
         # Skip if there's an else/elif clause
-        if node.orelse is not None:
-            return True
+        if node.orelse is not None: return True
         self._check_single_line_potential( node, node.body, 'if' )
         return True
 
     def visit_For( self, node: __.libcst.For ) -> bool:
         ''' Checks for loop for single-line potential. '''
-        if node.orelse is not None:
-            return True
+        if node.orelse is not None: return True
         self._check_single_line_potential( node, node.body, 'for' )
         return True
 
     def visit_While( self, node: __.libcst.While ) -> bool:
         ''' Checks while loop for single-line potential. '''
-        if node.orelse is not None:
-            return True
+        if node.orelse is not None: return True
         self._check_single_line_potential( node, node.body, 'while' )
         return True
 

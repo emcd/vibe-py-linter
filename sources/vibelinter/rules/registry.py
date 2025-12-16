@@ -97,8 +97,7 @@ class RuleRegistryManager:
         ''' Resolves VBL code or descriptive name to VBL code. '''
         from ..exceptions import RuleRegistryInvalidity
         # Try as VBL code first
-        if identifier in self.registry:
-            return identifier
+        if identifier in self.registry: return identifier
         # Try as descriptive name
         if identifier in self._name_to_code:
             return self._name_to_code[ identifier ]

@@ -163,8 +163,7 @@ class VBL101( __.BaseRule ):
                     not stripped
                     and not self._is_in_string( line_num )
                     and not self._is_adjacent_to_definition( line_num )
-                ):
-                    self._report_blank_line( line_num )
+                ): self._report_blank_line( line_num )
 
     def _is_in_string( self, line_num: int ) -> bool:
         ''' Checks if line is inside a triple-quoted string literal. '''

@@ -192,13 +192,11 @@ class Engine:
         '''
         suppressions: dict[ int, bool | set[ str ] ] = { }
         for i, line in enumerate( source_lines ):
-            if '#' not in line:
-                continue
+            if '#' not in line: continue
             # Simple split on first # is safer to find the START of comment
             comment_start = line.find( '#' )
             comment_text = line[ comment_start + 1: ].strip( )
-            if 'noqa' not in comment_text:
-                continue
+            if 'noqa' not in comment_text: continue
             # Split into parts to handle "nosec # noqa: ..."
             parts = comment_text.split( )
             # Check for bare noqa
@@ -268,8 +266,7 @@ class Engine:
         filename: str,
     ) -> list[ _violations.Violation ]:
         ''' Filters violations based on suppressions and per-file ignores. '''
-        if not violations:
-            return violations
+        if not violations: return violations
         filtered: list[ _violations.Violation ] = [ ]
         # 1. Per-file ignores from configuration
         ignored_rules: set[ str ] = set( )
@@ -285,19 +282,16 @@ class Engine:
                 ignored_rules.update( resolved_rules )
         for violation in violations:
             # Check per-file ignores
-            if violation.rule_id in ignored_rules:
-                continue
+            if violation.rule_id in ignored_rules: continue
             # Check inline suppressions
             if violation.line in suppressions:
                 suppression = suppressions[ violation.line ]
-                if suppression is True:
-                    continue
+                if suppression is True: continue
                 if isinstance( suppression, set ):
                     # Resolve descriptive names in suppression set
                     resolved_suppression = self._resolve_rule_identifiers(
                         tuple( suppression ) )
-                    if violation.rule_id in resolved_suppression:
-                        continue
+                    if violation.rule_id in resolved_suppression: continue
             filtered.append( violation )
         return filtered
 

@@ -66,8 +66,7 @@ class _TrailingCommaTransformer( __.libcst.CSTTransformer ):
         elements: __.cabc.Sequence[ __.libcst.BaseElement ]
     ) -> list[ __.libcst.BaseElement ]:
         ''' Adds trailing comma to last element if missing. '''
-        if not elements:
-            return list( elements )
+        if not elements: return list( elements )
         new_elements = list( elements )
         last_elem = new_elements[ -1 ]
         if isinstance( last_elem.comma, __.libcst.MaybeSentinel ):
@@ -84,8 +83,7 @@ class _TrailingCommaTransformer( __.libcst.CSTTransformer ):
         elements: __.cabc.Sequence[ __.libcst.BaseDictElement ]
     ) -> list[ __.libcst.BaseDictElement ]:
         ''' Adds trailing comma to last dict element if missing. '''
-        if not elements:
-            return list( elements )
+        if not elements: return list( elements )
         new_elements = list( elements )
         last_elem = new_elements[ -1 ]
         if isinstance( last_elem.comma, __.libcst.MaybeSentinel ):
@@ -192,8 +190,7 @@ class VBL107( __.FixableRule ):
             __.libcst.BaseElement | __.libcst.BaseDictElement ]
     ) -> bool:
         ''' Checks if last element has a trailing comma. '''
-        if not elements:
-            return True
+        if not elements: return True
         last_elem = elements[ -1 ]
         return not isinstance( last_elem.comma, __.libcst.MaybeSentinel )
 
@@ -205,12 +202,9 @@ class VBL107( __.FixableRule ):
         collection_type: str
     ) -> None:
         ''' Checks collection for missing trailing comma. '''
-        if not self._is_multiline( node ):
-            return
-        if not elements:
-            return
-        if self._has_trailing_comma( elements ):
-            return
+        if not self._is_multiline( node ): return
+        if not elements: return
+        if self._has_trailing_comma( elements ): return
         line, column = self._position_from_node( node )
         self._violations_to_fix.append( (
             node,

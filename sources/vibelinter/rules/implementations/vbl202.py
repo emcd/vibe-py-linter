@@ -114,11 +114,9 @@ class VBL202( __.BaseRule ):
         file_path = __.pathlib.Path( self.filename )
         for pattern in self._reexport_hub_patterns:
             # Try matching against the file path
-            if file_path.match( pattern ):
-                return True
+            if file_path.match( pattern ): return True
             # Try matching with wildcard prefix for path-based patterns
-            if file_path.match( f"*/{pattern}" ):
-                return True
+            if file_path.match( f"*/{pattern}" ): return True
         return False
 
     def _calculate_relative_depth( self, node: __.libcst.ImportFrom ) -> int:

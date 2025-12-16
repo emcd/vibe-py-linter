@@ -95,8 +95,7 @@ def discover_configuration(
         Returns absent if no configuration file found.
     '''
     config_path = _discover_pyproject_toml( start_directory )
-    if __.is_absent( config_path ):
-        return __.absent
+    if __.is_absent( config_path ): return __.absent
     return load_configuration( config_path )
 
 
@@ -125,15 +124,13 @@ def _discover_pyproject_toml(
         current = __.pathlib.Path.cwd( )
     else:
         current = __.pathlib.Path( start_directory ).resolve( )
-    if current.is_file( ):
-        current = current.parent
+    if current.is_file( ): current = current.parent
     while True:
         candidate = current / 'pyproject.toml'
         if candidate.exists( ) and candidate.is_file( ):
             return candidate
         parent = current.parent
-        if parent == current:
-            return __.absent
+        if parent == current: return __.absent
         current = parent
 
 
@@ -167,8 +164,7 @@ def _parse_optional_int(
     location: PathLike,
 ) -> __.Absential[ int ]:
     ''' Parses optional integer value from configuration. '''
-    if key not in data:
-        return __.absent
+    if key not in data: return __.absent
     value = data[ key ]
     if not isinstance( value, int ):
         typename = type( value ).__name__
@@ -257,11 +253,9 @@ def _parse_string_sequence(
     location: PathLike,
 ) -> __.Absential[ tuple[ str, ... ] ]:
     ''' Parses optional list of strings from configuration. '''
-    if key not in data:
-        return __.absent
+    if key not in data: return __.absent
     value: __.typx.Any = data[ key ]
-    if isinstance( value, str ):
-        return ( value, )
+    if isinstance( value, str ): return ( value, )
     if not isinstance( value, list ):
         typename = type( value ).__name__
         raise ConfigurationInvalidity(

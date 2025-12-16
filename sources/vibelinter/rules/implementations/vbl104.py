@@ -75,8 +75,7 @@ class _KeywordSpacingTransformer( __.libcst.CSTTransformer ):
         pos = self._get_position( original_node )
         if pos is None or pos != ( self.target_line, self.target_column ):
             return updated_node
-        if updated_node.keyword is None:
-            return updated_node
+        if updated_node.keyword is None: return updated_node
         if isinstance( updated_node.equal, __.libcst.MaybeSentinel ):
             return updated_node
         # Add spaces around the equal sign
@@ -95,8 +94,7 @@ class _KeywordSpacingTransformer( __.libcst.CSTTransformer ):
         pos = self._get_position( original_node )
         if pos is None or pos != ( self.target_line, self.target_column ):
             return updated_node
-        if updated_node.default is None:
-            return updated_node
+        if updated_node.default is None: return updated_node
         if isinstance( updated_node.equal, __.libcst.MaybeSentinel ):
             return updated_node
         # Add spaces around the equal sign
@@ -147,8 +145,7 @@ class VBL104( __.FixableRule ):
         context: str
     ) -> None:
         ''' Checks spacing around an equals sign. '''
-        if isinstance( equal, __.libcst.MaybeSentinel ):
-            return
+        if isinstance( equal, __.libcst.MaybeSentinel ): return
         ws_before = equal.whitespace_before
         ws_after = equal.whitespace_after
         needs_fix = self._whitespace_needs_fix(
